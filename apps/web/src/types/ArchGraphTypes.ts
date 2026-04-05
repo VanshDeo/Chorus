@@ -1,4 +1,4 @@
-// OpenQuest v1.1 — Progressive Disclosure Architecture Types
+// Chorus v1.1 — Progressive Disclosure Architecture Types
 
 export interface ArchNode {
     id: string;

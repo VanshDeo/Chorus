@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "OpenQuest — Gamified Open Source Contributions",
+  title: "Chorus — Gamified Open Source Contributions",
   description:
     "Transform your open-source contributions into measurable XP, levels, and achievements. Discover projects, complete quests, and climb the leaderboard.",
   keywords: "open source, github, gamification, XP, contributions, developer platform",

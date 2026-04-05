@@ -44,7 +44,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 
-  /* OpenQuest custom colors */
+  /* Chorus custom colors */
   --color-brand-blue: #3B82F6;
   --color-brand-green: #22C55E;
   --color-brand-yellow: #FACC15;

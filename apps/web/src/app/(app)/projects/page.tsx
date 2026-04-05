@@ -9,7 +9,6 @@ import {
     Star,
     GitPullRequest,
     Clock,
-    Zap,
     Brain,
     ArrowRight,
     Shield,
@@ -34,13 +33,12 @@ const projects = [
             "Great for developers learning component architecture. Many good-first-issue tickets around documentation and testing.",
         difficulty: "Intermediate",
         diffColor: "yellow",
-        questCount: 24,
+        issueCount: 24,
         mergeVelocity: "2.3/day",
         quality: 98,
         stars: "224k",
         language: "TypeScript",
         langColor: "blue",
-        xpRange: "150–400 XP",
         tags: ["Frontend", "JavaScript", "UI"],
     },
     {
@@ -52,13 +50,12 @@ const projects = [
             "Large codebase but excellent documentation. Issues labeled 'help-wanted' are well-described.",
         difficulty: "Advanced",
         diffColor: "orange",
-        questCount: 18,
+        issueCount: 18,
         mergeVelocity: "4.1/day",
         quality: 97,
         stars: "162k",
         language: "TypeScript",
         langColor: "blue",
-        xpRange: "300–600 XP",
         tags: ["Editor", "Electron", "TypeScript"],
     },
     {
@@ -70,13 +67,12 @@ const projects = [
             "Active community, fast review cycles. Beginner-friendly issues available in docs and testing.",
         difficulty: "Beginner",
         diffColor: "green",
-        questCount: 31,
+        issueCount: 31,
         mergeVelocity: "3.7/day",
         quality: 96,
         stars: "120k",
         language: "JavaScript",
         langColor: "yellow",
-        xpRange: "80–250 XP",
         tags: ["React", "SSR", "Web"],
     },
     {
@@ -87,13 +83,12 @@ const projects = [
             "Excellent for CSS learners. Issues around plugin development and documentation are very accessible.",
         difficulty: "Beginner",
         diffColor: "green",
-        questCount: 14,
+        issueCount: 14,
         mergeVelocity: "1.8/day",
         quality: 95,
         stars: "83k",
         language: "CSS",
         langColor: "purple",
-        xpRange: "60–200 XP",
         tags: ["CSS", "Design System", "Utility"],
     },
     {
@@ -103,13 +98,12 @@ const projects = [
         aiSummary: "Deep ML knowledge required. Good entry points in documentation and test coverage.",
         difficulty: "Expert",
         diffColor: "red",
-        questCount: 9,
+        issueCount: 9,
         mergeVelocity: "5.2/day",
         quality: 94,
         stars: "80k",
         language: "Python",
         langColor: "green",
-        xpRange: "500–1000 XP",
         tags: ["ML", "Python", "Tensors"],
     },
     {
@@ -121,13 +115,12 @@ const projects = [
             "Small codebase, quick review. Great for learning component library patterns.",
         difficulty: "Intermediate",
         diffColor: "yellow",
-        questCount: 11,
+        issueCount: 11,
         mergeVelocity: "1.4/day",
         quality: 93,
         stars: "73k",
         language: "TypeScript",
         langColor: "blue",
-        xpRange: "100–300 XP",
         tags: ["React", "Design", "Components"],
     },
 ];
@@ -244,15 +237,11 @@ export default function ProjectsPage() {
                                 <div className="flex items-center gap-4 mb-4 text-xs text-slate-500">
                                     <div className="flex items-center gap-1">
                                         <GitPullRequest className="w-3.5 h-3.5" />
-                                        {project.questCount} quests
+                                        {project.issueCount} issues
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Clock className="w-3.5 h-3.5" />
                                         {project.mergeVelocity} merges
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                                        <span className="text-yellow-400 font-medium">{project.xpRange}</span>
                                     </div>
                                     <div className="ml-auto flex items-center gap-1">
                                         <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -271,8 +260,8 @@ export default function ProjectsPage() {
                                         className="flex-1 bg-orange-600 hover:bg-orange-500 text-white border-0 text-xs hover:scale-105 transition-transform"
                                         asChild
                                     >
-                                        <Link href="/quests">
-                                            View Quests <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                                        <Link href="/issues">
+                                            View Issues <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                         </Link>
                                     </Button>
                                     <Button
