@@ -6,8 +6,7 @@ import {
     Home,
     GitBranch,
     Search,
-    Sword,
-    Trophy,
+    Target,
     User,
     Zap,
     PanelLeftClose,
@@ -21,8 +20,7 @@ const navLinks = [
     { href: "/", label: "Home", icon: Home },
     { href: "/projects", label: "Projects", icon: GitBranch },
     { href: "/analyze", label: "Analyze", icon: Search },
-    { href: "/quests", label: "Quests", icon: Sword },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { href: "/issues", label: "Issues", icon: Target },
     { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -84,7 +82,7 @@ export default function Sidebar() {
                         </div>
                         {(!isCollapsed || isMobileOpen) && (
                             <span className="text-lg font-bold text-white tracking-tight animate-in fade-in duration-300">
-                                Open<span className="text-orange-500">Quest</span>
+                                Chorus
                             </span>
                         )}
                     </Link>
@@ -140,7 +138,7 @@ export default function Sidebar() {
                 <div className="p-4 border-t border-white/5 flex justify-center items-center h-16 shrink-0">
                     {(!isCollapsed || isMobileOpen) ? (
                         <div className="text-xs text-slate-600 text-center font-medium animate-in fade-in duration-300 whitespace-nowrap">
-                            © 2026 OpenQuest
+                            © 2026 Chorus
                         </div>
                     ) : (
                         <Zap className="w-4 h-4 text-slate-600 animate-in fade-in duration-300 shrink-0" />

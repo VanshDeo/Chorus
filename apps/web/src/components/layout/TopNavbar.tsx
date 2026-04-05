@@ -77,25 +77,29 @@ export default function TopNavbar() {
                 {/* Spacer for hamburger button on mobile */}
                 <div className="w-9 lg:hidden" />
 
-                {/* Contributors stat — hidden on mobile */}
+                {/* Contributions stat — hidden on mobile */}
                 <div className="hidden md:flex items-center gap-2 lg:gap-3">
                     <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                        <Users className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-orange-400" />
+                        <Flame className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-orange-400" />
                     </div>
                     <div>
-                        <div className="text-[9px] lg:text-[10px] uppercase font-bold text-slate-500 tracking-wider">Contributors</div>
-                        <div className="text-xs lg:text-sm font-black text-white">992,831</div>
+                        <div className="text-[9px] lg:text-[10px] uppercase font-bold text-slate-500 tracking-wider">Contributions</div>
+                        <div className="text-xs lg:text-sm font-black text-white">
+                            {user ? user.skillProfile?.contributionCount?.toLocaleString() || "0" : "--"}
+                        </div>
                     </div>
                 </div>
 
-                {/* Quests stat — hidden on mobile */}
+                {/* Repositories stat — hidden on mobile */}
                 <div className="hidden md:flex items-center gap-2 lg:gap-3">
                     <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
                         <Target className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-yellow-400" />
                     </div>
                     <div>
-                        <div className="text-[9px] lg:text-[10px] uppercase font-bold text-slate-500 tracking-wider">Quests Completed</div>
-                        <div className="text-xs lg:text-sm font-black text-white">22,863,066</div>
+                        <div className="text-[9px] lg:text-[10px] uppercase font-bold text-slate-500 tracking-wider">Repositories</div>
+                        <div className="text-xs lg:text-sm font-black text-white">
+                            {user ? user.skillProfile?.totalRepos?.toLocaleString() || "0" : "--"}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -109,27 +113,7 @@ export default function TopNavbar() {
                             <Bell className="w-4 h-4" />
                         </button>
 
-                        {/* Gamification Stats — hide pill on mobile, show condensed on sm */}
-                        <div className="hidden sm:flex items-center gap-2 lg:gap-3 bg-white/5 rounded-full px-2.5 lg:px-3 py-1.5 border border-white/10">
-                            <div className="flex items-center gap-1 lg:gap-1.5 border-r border-white/10 pr-2 lg:pr-3">
-                                <Flame className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-orange-500" />
-                                <span className="text-[10px] lg:text-xs font-bold text-white">
-                                    {user.skillProfile?.contributionCount ?? 0}
-                                </span>
-                            </div>
-                            <div className="hidden lg:flex items-center gap-1.5 border-r border-white/10 pr-3">
-                                <div className="w-4 h-4 rounded-full bg-orange-600 flex items-center justify-center text-[8px] font-black text-white border border-orange-400">XP</div>
-                                <span className="text-xs font-bold text-white">
-                                    {user.skillProfile?.totalStars ?? 0} XP
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1 lg:gap-1.5 pl-0.5 lg:pl-1 text-slate-400">
-                                <Coins className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-green-500" />
-                                <span className="text-[10px] lg:text-xs font-bold text-white">
-                                    {user.skillProfile?.totalRepos ?? 0}
-                                </span>
-                            </div>
-                        </div>
+                        {/* Blank spacer removing duplicate stats pill */}
 
                         {/* Profile Section */}
                         <div className="flex items-center gap-2 lg:gap-3 cursor-pointer hover:opacity-80 transition pl-2 lg:pl-4 border-l border-white/5">
@@ -143,9 +127,6 @@ export default function TopNavbar() {
                             </Avatar>
                             <div className="hidden md:flex flex-col">
                                 <span className="text-xs lg:text-sm font-semibold text-white leading-tight">{user.username}</span>
-                                <span className="text-[10px] lg:text-xs font-bold text-orange-400 capitalize">
-                                    {user.skillProfile?.overallLevel ?? "beginner"}
-                                </span>
                             </div>
                             <button
                                 onClick={handleLogout}

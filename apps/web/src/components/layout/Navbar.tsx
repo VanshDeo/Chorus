@@ -7,8 +7,7 @@ import {
     Home,
     GitBranch,
     Search,
-    Sword,
-    Trophy,
+    Target,
     User,
     Menu,
     X,
@@ -22,8 +21,7 @@ const navLinks = [
     { href: "/", label: "Home", icon: Home },
     { href: "/projects", label: "Projects", icon: GitBranch },
     { href: "/analyze", label: "Analyze", icon: Search },
-    { href: "/quests", label: "Quests", icon: Sword },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { href: "/issues", label: "Issues", icon: Target },
     { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -41,7 +39,7 @@ export default function Navbar() {
                             <Zap className="w-4 h-4 text-white" />
                         </div>
                         <span className="text-lg font-bold text-white tracking-tight">
-                            Open<span className="text-orange-500">Quest</span>
+                            Chorus
                         </span>
                     </Link>
 
@@ -66,10 +64,6 @@ export default function Navbar() {
 
                     {/* CTA */}
                     <div className="hidden md:flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1">
-                            <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                            <span className="text-xs font-semibold text-yellow-400">1,240 XP</span>
-                        </div>
                         <Button
                             size="sm"
                             className="bg-orange-600 hover:bg-orange-500 text-white border-0 shadow-lg shadow-orange-500/20"

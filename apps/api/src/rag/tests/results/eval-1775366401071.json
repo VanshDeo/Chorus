@@ -1,0 +1,28 @@
+{
+  "evalResults": [
+    {
+      "query": "How is a user's level calculated from XP?",
+      "precisionAtK": 0.6666666666666666,
+      "recallAtK": 1,
+      "mrr": 1,
+      "hallucinationScore": 0.3333333333333333,
+      "f1": 0.8
+    },
+    {
+      "query": "What badges can a user earn?",
+      "precisionAtK": 0.3333333333333333,
+      "recallAtK": 1,
+      "mrr": 0.5,
+      "hallucinationScore": 0,
+      "f1": 0.5
+    },
+    {
+      "query": "What is the leaderboard ranking formula?",
+      "precisionAtK": 0,
+      "recallAtK": 0,
+      "mrr": 0,
+      "hallucinationScore": 0.3333333333333333,
+      "f1": 0
+    }
+  ]
+}

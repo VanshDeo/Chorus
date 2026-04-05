@@ -8,7 +8,6 @@ import {
   Zap,
   Star,
   GitPullRequest,
-  Trophy,
   Target,
   Brain,
   TrendingUp,
@@ -43,7 +42,7 @@ const problems = [
   {
     icon: Brain,
     title: "No feedback loop",
-    desc: "Contributions feel invisible. There's no reward or progression tracking.",
+    desc: "Contributions feel invisible. Large codebases are difficult to navigate without clear insight.",
   },
   {
     icon: TrendingUp,
@@ -65,37 +64,13 @@ const howItWorks = [
   },
   {
     step: "03",
-    title: "Complete Quests",
-    desc: "Each issue becomes a quest with difficulty rating, XP reward, and a step-by-step guide.",
+    title: "Analyze Issues",
+    desc: "Our RAG pipeline analyzes issues, calculates their exact difficulty, and points out the key files you need to look at.",
   },
   {
     step: "04",
-    title: "Level Up",
-    desc: "Earn XP, unlock badges, climb leaderboards, and build a portfolio that speaks for itself.",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "Level 18 — Island Raider",
-    avatar: "SC",
-    text: "OpenQuest turned my occasional PRs into a daily habit. The quest system makes open source addictive.",
-    xp: "8,240 XP",
-  },
-  {
-    name: "Marcus Dev",
-    role: "Level 31 — Legendary Islander",
-    avatar: "MD",
-    text: "I found my first real open source project through OpenQuest's AI. The difficulty score was spot on.",
-    xp: "32,100 XP",
-  },
-  {
-    name: "Priya K.",
-    role: "Level 9 — Code Explorer",
-    avatar: "PK",
-    text: "The XP system is addictive. Way better than just staring at a blank GitHub contribution graph.",
-    xp: "2,780 XP",
+    title: "Make an Impact",
+    desc: "Successfully land PRs in challenging repositories and build an open-source portfolio that speaks for itself.",
   },
 ];
 
@@ -110,7 +85,7 @@ export default function LandingPage() {
               <Zap className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="text-base font-bold text-white tracking-tight">
-              Open<span className="text-orange-400">Quest</span>
+              Chorus
             </span>
           </div>
 
@@ -118,13 +93,10 @@ export default function LandingPage() {
             <a href="#how-it-works" className="text-xs text-slate-400 hover:text-white transition-colors">
               How It Works
             </a>
-            <a href="/leaderboard" className="text-xs text-slate-400 hover:text-white transition-colors">
-              Leaderboard
-            </a>
             <a href="#" className="text-xs text-slate-400 hover:text-white transition-colors">
               Docs
             </a>
-            <a href="#testimonials" className="text-xs text-slate-400 hover:text-white transition-colors">
+            <a href="#community" className="text-xs text-slate-400 hover:text-white transition-colors">
               Community
             </a>
           </div>
@@ -181,7 +153,7 @@ export default function LandingPage() {
           >
             Your open source journey,{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-500">
-              gamified.
+              simplified.
             </span>
           </motion.h1>
 
@@ -193,7 +165,7 @@ export default function LandingPage() {
             className="text-base text-slate-300 max-w-lg mx-auto mb-10 leading-relaxed"
           >
             Connect your GitHub, discover projects matched to your skill level,
-            complete quests, earn XP, and level up as a contributor.
+            find the perfect issues, and dramatically accelerate your workflow.
           </motion.p>
 
           <motion.div
@@ -243,7 +215,7 @@ export default function LandingPage() {
               <span className="text-orange-400">broken for beginners</span>
             </h2>
             <p className="text-slate-300 text-sm max-w-md mx-auto">
-              Most developers want to contribute, but the experience is overwhelming, unrewarding, and directionless.
+              Most developers want to contribute, but the experience is overwhelming, unstructured, and directionless.
             </p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -282,7 +254,7 @@ export default function LandingPage() {
             </Badge>
             <h2 className="text-3xl font-bold text-white mb-3">
               Four steps to{" "}
-              <span className="text-orange-400">legendary status</span>
+              <span className="text-orange-400">making an impact</span>
             </h2>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -305,57 +277,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF
-      <section id="testimonials" className="py-16 border-t border-white/5">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <Badge className="mb-3 bg-orange-500/10 text-orange-400 border-orange-500/20 rounded-[3px] text-xs">
-              <Star className="w-3 h-3 mr-1 fill-orange-400" />
-              Community
-            </Badge>
-            <h2 className="text-3xl font-bold text-white mb-3">
-              Loved by{" "}
-              <span className="text-orange-400">real contributors</span>
-            </h2>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {testimonials.map(({ name, role, avatar, text, xp }, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-              >
-                <Card className="bg-[#111] border-white/5 p-6 h-full hover:border-orange-500/15 duration-200 transition-all rounded-[6px]">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-[4px] bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {avatar}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white text-sm">{name}</div>
-                      <div className="text-xs text-slate-500">{role}</div>
-                    </div>
-                    <div className="ml-auto">
-                      <Badge className="bg-orange-400/10 text-orange-400 border-orange-400/20 text-[10px] rounded-[3px] px-1.5 py-0.5">
-                        <Zap className="w-2.5 h-2.5 mr-0.5" />
-                        {xp}
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">&quot;{text}&quot;</p>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section> */}
-
       {/* CTA BANNER */}
       <section className="py-16 border-t border-white/5 m-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -366,11 +287,11 @@ export default function LandingPage() {
             className="relative rounded-[6px] bg-[#111] border border-orange-500/15 p-12"
           >
             <h2 className="text-3xl font-bold text-white mb-3">
-              Ready to start your{" "}
-              <span className="text-orange-400">quest?</span>
+              Ready to accelerate your{" "}
+              <span className="text-orange-400">journey?</span>
             </h2>
             <p className="text-slate-300 text-sm mb-8 max-w-md mx-auto">
-              Join 12,400+ developers who are turning commits into achievements. Connect your GitHub and start in under a minute.
+              Join 12,400+ developers who are seamlessly discovering and landing impactful PRs. Connect your GitHub and start in under a minute.
             </p>
             <Button
               size="lg"
@@ -394,18 +315,18 @@ export default function LandingPage() {
                   <Zap className="w-3 h-3 text-white" />
                 </div>
                 <span className="text-sm font-bold text-white">
-                  Open<span className="text-orange-400">Quest</span>
+                  Chorus
                 </span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Gamify your open source journey. Discover, contribute, and level up.
+                Simplify your open source journey. Discover, analyze, and make an impact.
               </p>
             </div>
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Platform</h4>
               <ul className="space-y-2">
                 <li><a href="#how-it-works" className="text-xs text-slate-400 hover:text-orange-400 transition-colors">How It Works</a></li>
-                <li><a href="#testimonials" className="text-xs text-slate-400 hover:text-orange-400 transition-colors">Community</a></li>
+                <li><a href="#community" className="text-xs text-slate-400 hover:text-orange-400 transition-colors">Community</a></li>
               </ul>
             </div>
             <div>
@@ -418,7 +339,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-slate-600">© 2025 OpenQuest. Built for developers, by developers.</p>
+            <p className="text-[11px] text-slate-600">© 2025 Chorus. Built for developers, by developers.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">Privacy</a>
               <a href="#" className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">Terms</a>

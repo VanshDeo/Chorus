@@ -169,7 +169,7 @@ export default function OnboardingPage() {
                         <Zap className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="text-sm font-bold text-white tracking-tight">
-                        Open<span className="text-orange-400">Quest</span>
+                        Chorus
                     </span>
                 </div>
                 {currentStep !== "welcome" && currentStep !== "complete" && (
@@ -209,7 +209,7 @@ export default function OnboardingPage() {
                                     <Rocket className="w-10 h-10 text-white" />
                                 </div>
                                 <h1 className="text-3xl font-bold text-white mb-3">
-                                    Let&apos;s personalize your quest!
+                                    Let&apos;s personalize your experience!
                                 </h1>
                                 <p className="text-slate-400 text-sm mb-8 max-w-sm mx-auto">
                                     Answer a few quick questions so we can match you with the perfect
@@ -319,7 +319,7 @@ export default function OnboardingPage() {
                                     What&apos;s your goal?
                                 </h2>
                                 <p className="text-slate-400 text-sm mb-8 text-center">
-                                    We&apos;ll tailor your quest feed to match.
+                                    We&apos;ll tailor your issue feed to match.
                                 </p>
                                 <div className="space-y-3">
                                     {goals.map(({ id, label, desc, icon: Icon }) => (
@@ -360,7 +360,7 @@ export default function OnboardingPage() {
                                     You&apos;re all set!
                                 </h1>
                                 <p className="text-slate-400 text-sm mb-8 max-w-sm mx-auto">
-                                    We&apos;ve personalized your quest feed based on your answers.
+                                    We&apos;ve personalized your issue feed based on your answers.
                                     Time to start contributing!
                                 </p>
                                 <Button size="lg" className="px-8 gap-2" onClick={handleComplete}>
