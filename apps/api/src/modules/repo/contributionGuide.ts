@@ -47,22 +47,22 @@ export async function createContributionGuide(
     // 2. Fetch Issue Meta
     const issueData = await fetchIssueData(owner, repo, issueNumber, githubToken);
 
-    // 3. Retrieve Context via RAG
-    const query = `${issueData.title}\n\n${issueData.body.slice(0, 500)}`;
+    // 3. Retrieve Context via RAG — fetch more chunks for richer file-level guidance
+    const query = `${issueData.title}\n\n${issueData.body.slice(0, 800)}`;
     let retrievedChunks: RetrievedChunk[] = [];
     try {
         const retrieval = await retrieve(query, {
             repoId,
-            topK: 6,
-            minScore: 0.25,
+            topK: 10,
+            minScore: 0.2,
         });
         retrievedChunks = retrieval.chunks;
     } catch (err) {
         console.warn('[ContributionGuide] RAG retrieval failed. Using empty context:', err);
     }
 
-    // Extract relevant files from RAG results
-    const relevantFiles = retrievedChunks.slice(0, 5).map((c) => ({
+    // Extract relevant files from RAG results (up to 8 for the frontend panel)
+    const relevantFiles = retrievedChunks.slice(0, 8).map((c) => ({
         filePath: c.filePath,
         startLine: c.startLine,
         endLine: c.endLine,
