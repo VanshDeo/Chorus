@@ -25,7 +25,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="dark">
         <body className={`${inter.variable} antialiased min-h-screen bg-[#0A0A0A]`}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>{children as any}</TooltipProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -165,9 +165,10 @@ function generateSuggestedIssues(repoSlug: string): any[] {
     ];
 }
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function IssuesPage() {
+function IssuesPageContent() {
     const searchParams = useSearchParams();
     const urlParam = searchParams.get("url");
 
@@ -742,5 +743,13 @@ export default function IssuesPage() {
                 </DialogContent>
             </Dialog>
         </div>
+    );
+}
+
+export default function IssuesPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="w-5 h-5 text-orange-400 animate-spin" /></div>}>
+            <IssuesPageContent />
+        </Suspense>
     );
 }
