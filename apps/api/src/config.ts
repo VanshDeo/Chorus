@@ -6,8 +6,9 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3001),
-  MONGODB_URI: z.string(),
-  MONGODB_DB_NAME: z.string().default('chorus'),
+
+  // PostgreSQL
+  DATABASE_URL: z.string(),
 
   // Redis — optional in development (queues & cache degrade gracefully)
   REDIS_URL: z.string().optional(),
@@ -52,9 +53,8 @@ if (!parsed.success) {
 export const config = {
   env: parsed.data.NODE_ENV,
   port: parsed.data.PORT,
-  mongodb: {
-    uri: parsed.data.MONGODB_URI,
-    dbName: parsed.data.MONGODB_DB_NAME,
+  db: {
+    url: parsed.data.DATABASE_URL,
   },
   redis: {
     url: parsed.data.REDIS_URL,

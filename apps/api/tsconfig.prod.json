@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "noEmit": false,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "baseUrl": "./src",
+    "paths": {
+      "@chorus/shared-types": ["../../packages/shared-types/src"],
+      "@chorus/tree-sitter-utils": ["../../packages/tree-sitter-utils/src"],
+      "@chorus/graph-utils": ["../../packages/graph-utils/src"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

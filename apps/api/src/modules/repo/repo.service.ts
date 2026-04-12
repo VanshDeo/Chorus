@@ -1,7 +1,7 @@
 // ── Repo Service ────────────────────────────────
 
 import type { Repository } from '@chorus/shared-types';
-import { RepoModel } from '../../db/models/Repo.model';
+import { RepoModel, RepoQuery } from '../../db/models/Repo.model';
 import { indexRepoQueue } from '../../queue/indexRepo.queue';
 import { Octokit } from '@octokit/rest';
 import {
@@ -69,10 +69,8 @@ export class RepoService {
       hasTests = rootPaths.some((p) => p === 'tests' || p === 'test' || p === '__tests__' || p === 'spec');
 
       // Count dependencies from package.json size heuristic
-      // (avoid fetching full package.json content to keep this fast)
       const pkgJson = rootTree.tree.find((f) => f.path === 'package.json');
       if (pkgJson?.size) {
-        // Rough estimate: avg 30 bytes per dependency entry in package.json
         dependencyCount = Math.round((pkgJson.size ?? 0) / 30);
       }
     } catch (err) {
@@ -160,10 +158,7 @@ export class RepoService {
    * Lists all analyzed repositories.
    */
   async listRepos(limit = 20, offset = 0): Promise<Repository[]> {
-    const repos = await RepoModel.find()
-      .sort({ updatedAt: -1 })
-      .skip(offset)
-      .limit(limit);
+    const repos = await RepoQuery.find().sort({ updatedAt: -1 }).skip(offset).limit(limit);
     return repos.map((r) => r.toObject() as unknown as Repository);
   }
 }

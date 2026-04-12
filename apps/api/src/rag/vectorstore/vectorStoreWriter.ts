@@ -2,8 +2,8 @@
  * vectorStoreWriter.ts
  * apps/api/src/rag/vectorstore/vectorStoreWriter.ts
  *
- * Writes embedded code chunks to MongoDB for Atlas Vector Search.
- * Replaces the previous Prisma/pgvector implementation.
+ * Writes embedded code chunks to PostgreSQL for pgvector similarity search.
+ * Replaces the previous MongoDB/Atlas Vector Search implementation.
  *
  * Strategies:
  *   - "skipped"       — commit hash unchanged, nothing to do
@@ -11,10 +11,10 @@
  *   - "upsert"        — no commit hash available, upsert by chunkId
  */
 
-import { ChunkModel } from "../../db/models/Chunk.model";
-import { RepoIndexModel } from "../../db/models/RepoIndex.model";
-import type { EmbeddedChunk } from "../embeddings/embeddingEngine";
-import type { RepoMeta } from "../ingestion/githubFetcher";
+import { ChunkModel } from '../../db/models/Chunk.model';
+import { RepoIndexModel } from '../../db/models/RepoIndex.model';
+import type { EmbeddedChunk } from '../embeddings/embeddingEngine';
+import type { RepoMeta } from '../ingestion/githubFetcher';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export interface WriteOptions {
 
 export interface WriteResult {
   repoId: string;
-  strategy: "skipped" | "full-reindex" | "upsert";
+  strategy: 'skipped' | 'full-reindex' | 'upsert';
   chunksWritten: number;
   chunksDeleted: number;
   durationMs: number;
@@ -40,7 +40,7 @@ const INSERT_BATCH_SIZE = 100; // Insert 100 chunks per batch
 
 export async function writeToVectorStore(
   embedded: EmbeddedChunk[],
-  options: WriteOptions
+  options: WriteOptions,
 ): Promise<WriteResult> {
   const startTime = Date.now();
   const repoId = `${options.repoMeta.owner}/${options.repoMeta.repo}`;
@@ -54,11 +54,11 @@ export async function writeToVectorStore(
     if (existing?.commitHash === options.commitHash) {
       const durationMs = Date.now() - startTime;
       console.log(
-        `[VectorStore] ⏭️  Skipping ${repoId} — already indexed at commit ${options.commitHash.slice(0, 7)}`
+        `[VectorStore] ⏭️  Skipping ${repoId} — already indexed at commit ${options.commitHash.slice(0, 7)}`,
       );
       return {
         repoId,
-        strategy: "skipped",
+        strategy: 'skipped',
         chunksWritten: 0,
         chunksDeleted: 0,
         durationMs,
@@ -67,13 +67,13 @@ export async function writeToVectorStore(
 
     // Commit changed (or first time) → full reindex
     console.log(
-      `[VectorStore] New commit detected (${options.commitHash.slice(0, 7)}). Full reindex.`
+      `[VectorStore] New commit detected (${options.commitHash.slice(0, 7)}). Full reindex.`,
     );
     return await fullReindex(repoId, embedded, options, startTime);
   }
 
   // ── No Commit Hash → Upsert Fallback ──────────────────────────────────────
-  console.log(`[VectorStore] No commit hash available. Using upsert fallback.`);
+  console.log('[VectorStore] No commit hash available. Using upsert fallback.');
   return await upsertChunks(repoId, embedded, options, startTime);
 }
 
@@ -83,7 +83,7 @@ async function fullReindex(
   repoId: string,
   embedded: EmbeddedChunk[],
   options: WriteOptions,
-  startTime: number
+  startTime: number,
 ): Promise<WriteResult> {
   // Delete all existing chunks for this repo
   const deleteResult = await ChunkModel.deleteMany({ repoId });
@@ -105,13 +105,13 @@ async function fullReindex(
       chunkCount: chunksWritten,
       embeddingModel: options.embeddingModel,
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   const durationMs = Date.now() - startTime;
   console.log(`[VectorStore] ✅ Full reindex complete: ${chunksWritten} chunks written in ${durationMs}ms`);
 
-  return { repoId, strategy: "full-reindex", chunksWritten, chunksDeleted, durationMs };
+  return { repoId, strategy: 'full-reindex', chunksWritten, chunksDeleted, durationMs };
 }
 
 // ─── Strategy B: Upsert Fallback ─────────────────────────────────────────────
@@ -120,11 +120,11 @@ async function upsertChunks(
   repoId: string,
   embedded: EmbeddedChunk[],
   options: WriteOptions,
-  startTime: number
+  startTime: number,
 ): Promise<WriteResult> {
   let chunksWritten = 0;
 
-  // Upsert in batches using bulkWrite
+  // Upsert in batches using ChunkModel.bulkWrite
   for (let i = 0; i < embedded.length; i += INSERT_BATCH_SIZE) {
     const batch = embedded.slice(i, i + INSERT_BATCH_SIZE);
 
@@ -155,7 +155,7 @@ async function upsertChunks(
     chunksWritten += batch.length;
 
     console.log(
-      `[VectorStore] Upserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(embedded.length / INSERT_BATCH_SIZE)}`
+      `[VectorStore] Upserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(embedded.length / INSERT_BATCH_SIZE)}`,
     );
   }
 
@@ -171,20 +171,20 @@ async function upsertChunks(
       chunkCount: chunksWritten,
       embeddingModel: options.embeddingModel,
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   const durationMs = Date.now() - startTime;
   console.log(`[VectorStore] ✅ Upsert complete: ${chunksWritten} chunks in ${durationMs}ms`);
 
-  return { repoId, strategy: "upsert", chunksWritten, chunksDeleted: 0, durationMs };
+  return { repoId, strategy: 'upsert', chunksWritten, chunksDeleted: 0, durationMs };
 }
 
 // ─── Batch Insert ─────────────────────────────────────────────────────────────
 
 async function batchInsertChunks(
   embedded: EmbeddedChunk[],
-  embeddingModel: string
+  embeddingModel: string,
 ): Promise<number> {
   let totalInserted = 0;
 
@@ -210,7 +210,7 @@ async function batchInsertChunks(
     totalInserted += batch.length;
 
     console.log(
-      `[VectorStore] Inserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(embedded.length / INSERT_BATCH_SIZE)}`
+      `[VectorStore] Inserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(embedded.length / INSERT_BATCH_SIZE)}`,
     );
   }
 
@@ -228,10 +228,10 @@ export async function fetchLatestCommitHash(
   owner: string,
   repo: string,
   defaultBranch: string,
-  githubToken?: string
+  githubToken?: string,
 ): Promise<string | null> {
   try {
-    const { Octokit } = await import("@octokit/rest");
+    const { Octokit } = await import('@octokit/rest');
     const octokit = new Octokit({ auth: githubToken || process.env.GITHUB_TOKEN });
 
     const { data } = await octokit.repos.getBranch({ owner, repo, branch: defaultBranch });

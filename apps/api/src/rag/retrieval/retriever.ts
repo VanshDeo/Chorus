@@ -6,16 +6,16 @@
  *
  * Pipeline:
  *   1. Embed the query using Gemini (asymmetric: RETRIEVAL_QUERY task type)
- *   2. Run MongoDB Atlas Vector Search ($vectorSearch aggregation)
+ *   2. Run pgvector cosine similarity search (replaces MongoDB Atlas $vectorSearch)
  *   3. Rerank by file proximity — boost chunks from files already in results
  *   4. Return final top-K chunks with scores, ready for prompt assembly
  *
- * Fallback: If Atlas Vector Search index is not configured, falls back to
- * in-memory cosine similarity search (slower, but works without Atlas index).
+ * Fallback: If pgvector search fails, falls back to in-memory cosine similarity
+ * search (slower, but works without a vector index).
  */
 
-import { ChunkModel } from "../../db/models/Chunk.model";
-import { GEMINI_EMBEDDING_DIM, embedQuery } from "../embeddings/queryEmbedder";
+import { ChunkModel } from '../../db/models/Chunk.model';
+import { embedQuery } from '../embeddings/queryEmbedder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,14 +61,11 @@ const PROXIMITY_BOOST = 0.08;
 // Cap proximity boost per file so one giant file can't dominate results
 const MAX_PROXIMITY_BOOST_PER_FILE = 0.16; // i.e. max 2 boosted chunks per file
 
-// Atlas Vector Search index name — must match what's configured in Atlas
-const ATLAS_VECTOR_INDEX_NAME = "vector_index";
-
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 export async function retrieve(
   query: string,
-  options: RetrievalOptions
+  options: RetrievalOptions,
 ): Promise<RetrievalResult> {
   const startTime = Date.now();
   const topK = options.topK ?? DEFAULT_TOP_K;
@@ -76,35 +73,35 @@ export async function retrieve(
   const minScore = options.minScore ?? DEFAULT_MIN_SCORE;
 
   console.log(
-    `[Retriever] Query: "${query.slice(0, 80)}..." | repo: ${options.repoId} | topK: ${topK}`
+    `[Retriever] Query: "${query.slice(0, 80)}..." | repo: ${options.repoId} | topK: ${topK}`,
   );
 
   // ── Step 1: Embed the query ────────────────────────────────────────────────
   const queryVector = await embedQuery(query);
 
-  // ── Step 2: Vector similarity search ──────────────────────────────────────
+  // ── Step 2: pgvector cosine similarity search ──────────────────────────────
   let candidates: RawCandidate[];
 
   try {
-    candidates = await atlasVectorSearch(
+    candidates = await pgVectorSearch(
       queryVector,
       options.repoId,
       candidateCount,
       minScore,
-      options.fileFilter
+      options.fileFilter,
     );
   } catch (err) {
-    // Fallback to in-memory cosine similarity if Atlas index isn't set up
+    // Fallback to in-memory cosine similarity if pgvector query fails
     console.warn(
-      `[Retriever] Atlas Vector Search failed, using in-memory fallback:`,
-      (err as Error).message
+      '[Retriever] pgvector search failed, using in-memory fallback:',
+      (err as Error).message,
     );
     candidates = await inMemoryVectorSearch(
       queryVector,
       options.repoId,
       candidateCount,
       minScore,
-      options.fileFilter
+      options.fileFilter,
     );
   }
 
@@ -116,7 +113,7 @@ export async function retrieve(
   const durationMs = Date.now() - startTime;
 
   console.log(
-    `[Retriever] ✅ Returning ${reranked.length} chunks after reranking (${durationMs}ms)`
+    `[Retriever] ✅ Returning ${reranked.length} chunks after reranking (${durationMs}ms)`,
   );
 
   return {
@@ -141,89 +138,40 @@ export interface RawCandidate {
   vectorScore: number;
 }
 
-// ─── Atlas Vector Search ──────────────────────────────────────────────────────
+// ─── pgvector Cosine Similarity Search ───────────────────────────────────────
 
 /**
- * Uses MongoDB Atlas $vectorSearch aggregation stage.
- * Requires a vector search index named "vector_index" on the CodeChunk collection.
+ * Uses PostgreSQL pgvector's `<=>` cosine distance operator.
  *
- * Index definition (create in Atlas UI or via API):
- * {
- *   "fields": [
- *     {
- *       "type": "vector",
- *       "path": "embedding",
- *       "numDimensions": 768,
- *       "similarity": "cosine"
- *     },
- *     {
- *       "type": "filter",
- *       "path": "repoId"
- *     },
- *     {
- *       "type": "filter",
- *       "path": "filePath"
- *     }
- *   ]
- * }
+ * Requires a vector index on code_chunks.embedding (created by migrate.ts):
+ *   CREATE INDEX chunks_embedding_hnsw_idx ON code_chunks
+ *   USING hnsw (embedding vector_cosine_ops)
+ *
+ * The <=> operator returns cosine distance (0 = identical, 2 = opposite).
+ * We convert to similarity: score = 1 - distance.
  */
-async function atlasVectorSearch(
+async function pgVectorSearch(
   queryVector: number[],
   repoId: string,
   limit: number,
   minScore: number,
-  fileFilter?: string[]
+  fileFilter?: string[],
 ): Promise<RawCandidate[]> {
-  // Build the filter for $vectorSearch
-  const filter: Record<string, unknown> = { repoId };
-  if (fileFilter && fileFilter.length > 0) {
-    filter.filePath = { $in: fileFilter };
-  }
+  const results = await ChunkModel.vectorSearch(
+    queryVector,
+    repoId,
+    limit,
+    minScore,
+    fileFilter,
+  );
 
-  const pipeline = [
-    {
-      $vectorSearch: {
-        index: ATLAS_VECTOR_INDEX_NAME,
-        path: "embedding",
-        queryVector,
-        numCandidates: limit * 2, // Atlas recommends 2x limit for numCandidates
-        limit,
-        filter,
-      },
-    },
-    {
-      $addFields: {
-        vectorScore: { $meta: "vectorSearchScore" },
-      },
-    },
-    {
-      $match: {
-        vectorScore: { $gte: minScore },
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        id: "$chunkId",
-        filePath: 1,
-        language: 1,
-        content: 1,
-        startLine: 1,
-        endLine: 1,
-        symbolName: 1,
-        vectorScore: 1,
-      },
-    },
-  ];
-
-  const results = await ChunkModel.aggregate(pipeline);
-  return results as RawCandidate[];
+  return results;
 }
 
 // ─── In-Memory Fallback ───────────────────────────────────────────────────────
 
 /**
- * Fallback for local development without Atlas Vector Search index.
+ * Fallback for when the pgvector index isn't available yet.
  * Loads all chunks for the repo into memory and computes cosine similarity.
  * Only practical for small repos (< ~5000 chunks).
  */
@@ -232,17 +180,15 @@ async function inMemoryVectorSearch(
   repoId: string,
   limit: number,
   minScore: number,
-  fileFilter?: string[]
+  fileFilter?: string[],
 ): Promise<RawCandidate[]> {
-  const filter: Record<string, unknown> = { repoId };
+  const filter: { repoId: string; filePath?: { $in: string[] } } = { repoId };
   if (fileFilter && fileFilter.length > 0) {
     filter.filePath = { $in: fileFilter };
   }
 
   // Fetch all chunks for this repo (with embeddings)
-  const chunks = await ChunkModel.find(filter)
-    .select("chunkId filePath language content startLine endLine symbolName embedding")
-    .lean();
+  const chunks = await ChunkModel.find(filter);
 
   if (chunks.length === 0) return [];
 
@@ -251,15 +197,15 @@ async function inMemoryVectorSearch(
   // Compute cosine similarity for each chunk
   const scored = chunks
     .map((chunk) => {
-      const sim = cosineSimilarity(queryVector, chunk.embedding as number[]);
+      const sim = cosineSimilarity(queryVector, chunk.embedding);
       return {
-        id: chunk.chunkId as string,
-        filePath: chunk.filePath as string,
-        language: chunk.language as string,
-        content: chunk.content as string,
-        startLine: chunk.startLine as number,
-        endLine: chunk.endLine as number,
-        symbolName: (chunk.symbolName as string) ?? null,
+        id: chunk.chunkId,
+        filePath: chunk.filePath,
+        language: chunk.language,
+        content: chunk.content,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+        symbolName: chunk.symbolName,
         vectorScore: sim,
       };
     })
@@ -286,7 +232,7 @@ async function inMemoryVectorSearch(
  */
 export function rerankByFileProximity(
   candidates: RawCandidate[],
-  topK: number
+  topK: number,
 ): RetrievedChunk[] {
   if (candidates.length === 0) return [];
 
@@ -294,7 +240,7 @@ export function rerankByFileProximity(
 
   // Pass 1: collect anchor files from top-N by vector score
   const anchorFiles = new Set(
-    candidates.slice(0, ANCHOR_COUNT).map((c) => c.filePath)
+    candidates.slice(0, ANCHOR_COUNT).map((c) => c.filePath),
   );
 
   // Track how much boost has been applied per file (cap enforcement)
@@ -310,7 +256,7 @@ export function rerankByFileProximity(
       if (alreadyBoosted < MAX_PROXIMITY_BOOST_PER_FILE) {
         proximityBoost = Math.min(
           PROXIMITY_BOOST,
-          MAX_PROXIMITY_BOOST_PER_FILE - alreadyBoosted
+          MAX_PROXIMITY_BOOST_PER_FILE - alreadyBoosted,
         );
         boostApplied.set(candidate.filePath, alreadyBoosted + proximityBoost);
       }

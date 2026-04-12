@@ -11,10 +11,16 @@ export class GraphController {
   async getGraph(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const level = (req.query.level as GraphLevel) || 'module';
+      const level = (req.query.level as string) || 'module';
       const commitSha = req.query.commitSha as string | undefined;
 
-      const graph = await graphService.getGraph(id, level, commitSha);
+      let graph;
+      if (level === 'architecture') {
+        graph = await graphService.getArchitectureGraph(id, commitSha);
+      } else {
+        graph = await graphService.getGraph(id, level as GraphLevel, commitSha);
+      }
+      
       if (!graph) return res.status(404).json({ error: 'Graph not found' });
       return res.json(graph);
     } catch (err) {
