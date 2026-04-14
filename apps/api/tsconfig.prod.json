@@ -14,5 +14,6 @@
       "@chorus/graph-utils": ["../../packages/graph-utils/src"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/rag/tests/**/*.ts"]
 }
