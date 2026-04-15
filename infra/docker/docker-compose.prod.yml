@@ -16,7 +16,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chorus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chorus_secret}
       POSTGRES_DB: ${POSTGRES_DB:-chorus}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -32,7 +32,7 @@ services:
     image: redis:7-alpine
     restart: always
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
     command: >
       /bin/sh -c '
         if [ -z "$$REDIS_PASSWORD" ]; then
@@ -56,7 +56,7 @@ services:
       dockerfile: infra/docker/Dockerfile.api
     command: node apps/api/dist/db/migrate.js
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-chorus}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chorus}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chorus}:${POSTGRES_PASSWORD:-chorus_secret}@postgres:5432/${POSTGRES_DB:-chorus}
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,18 +72,18 @@ services:
       - '3001:3001'
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-chorus}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chorus}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chorus}:${POSTGRES_PASSWORD:-chorus_secret}@postgres:5432/${POSTGRES_DB:-chorus}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-missing_gemini_key}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-missing_github_token}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-missing_client_id}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-missing_client_secret}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-missing_webhook_secret}
+      JWT_SECRET: ${JWT_SECRET:-chorus_jwt_super_secret_fallback}
       JWT_EXPIRY: ${JWT_EXPIRY:-7d}
-      CALLBACK_URL: ${CALLBACK_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
-      CORS_ORIGINS: ${CORS_ORIGINS}
+      CALLBACK_URL: ${CALLBACK_URL:-http://localhost:3001/api/auth/callback}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -106,9 +106,9 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-missing_gemini_key}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-missing_github_token}
     depends_on:
       redis:
         condition: service_healthy
