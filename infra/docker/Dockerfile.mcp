@@ -15,6 +15,7 @@ COPY --from=builder /app/out/package-lock.json ./package-lock.json
 RUN npm ci
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
+COPY tsconfig.base.json tsconfig.base.json
 RUN npx turbo run build --filter=@chorus/mcp...
 
 FROM base AS runner
