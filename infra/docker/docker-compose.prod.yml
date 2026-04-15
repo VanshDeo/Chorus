@@ -45,7 +45,7 @@ services:
     build:
       context: ../../
       dockerfile: infra/docker/Dockerfile.api
-    command: node dist/db/migrate.js
+    command: node apps/api/dist/db/migrate.js
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-chorus}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chorus}
     depends_on:
