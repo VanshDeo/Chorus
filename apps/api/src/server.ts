@@ -19,6 +19,7 @@ const app = express();
 // ── Middleware ──
 app.use(helmet());
 app.use(cors({ origin: `${process.env.CORS_ORIGINS}`, methods: ["GET", "POST", "PUT", "DELETE"], credentials: true }));
+app.options("*", cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ── Health Check ──
