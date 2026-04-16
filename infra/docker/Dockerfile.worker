@@ -14,18 +14,15 @@ COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/package-lock.json ./package-lock.json
 RUN npm ci
 COPY --from=builder /app/out/full/ .
-COPY turbo.json turbo.json
-COPY tsconfig.base.json tsconfig.base.json
+COPY --from=builder /app/turbo.json turbo.json
+COPY --from=builder /app/tsconfig.base.json tsconfig.base.json
 RUN npx turbo run build --filter=@chorus/worker...
 
 FROM base AS runner
 WORKDIR /app
-# git is required for isomorphic-git to successfully clone repositories
 RUN apk add --no-cache git
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 workerjs
 USER workerjs
-
 COPY --from=installer --chown=workerjs:nodejs /app .
-
 CMD ["node", "apps/worker/dist/worker.js"]
