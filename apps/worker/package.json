@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/worker.ts",
-    "build": "tsc",
+    "build": "tsc --project tsconfig.prod.json",
     "start": "node dist/worker.js",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"

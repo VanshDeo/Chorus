@@ -14,8 +14,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "incremental": true,
-    "baseUrl": "./",
-
-  },
+    "paths": {
+      "@chorus/*": ["./packages/*/src"]
+    }  },
   "exclude": ["node_modules", "dist", ".next", "coverage"]
 }

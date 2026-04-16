@@ -8,7 +8,7 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "baseUrl": "./src",
-
+    "paths": {}
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "src/rag/tests/**/*.ts"]
