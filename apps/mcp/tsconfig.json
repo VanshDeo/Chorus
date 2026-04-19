@@ -4,11 +4,6 @@
     "outDir": "./dist",
     "types": ["node"],
     "noEmit": false,
-    "baseUrl": "./src",
-    "paths": {
-      "@chorus/shared-types": ["../../packages/shared-types/src"]
-    }
-
-  },
+    "baseUrl": "."  },
   "include": ["src/**/*.ts"]
 }

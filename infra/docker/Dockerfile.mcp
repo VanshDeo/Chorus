@@ -16,15 +16,12 @@ RUN npm install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.base.json tsconfig.base.json
-RUN npx turbo run build --filter=@chorus/shared-types
-# install dependencies
-RUN npm install
+# copy already built files
+COPY . .
 
-# build shared-types manually
-RUN cd packages/shared-types && npm run build
+WORKDIR /app/apps/mcp
 
-# build mcp manually
-RUN cd apps/mcp && npm run build
+CMD ["node", "dist/server.js"]
 
 FROM base AS runner
 WORKDIR /app

@@ -14,8 +14,9 @@
     "declarationMap": true,
     "sourceMap": true,
     "incremental": true,
+    "baseUrl": ".",
     "paths": {
-      "@chorus/shared-types": ["../packages/shared-types/src"]
+      "@chorus/*": ["./packages/*/src", "./apps/*/src"]
     }  },
   "exclude": ["node_modules", "dist", ".next", "coverage"]
 }
