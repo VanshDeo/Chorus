@@ -4,8 +4,6 @@
     "outDir": "./dist",
     "types": ["node"],
     "noEmit": false,
-    "baseUrl": "./src",
-
-  },
+    "baseUrl": "."  },
   "include": ["src/**/*.ts"]
 }

@@ -2,17 +2,17 @@
   "name": "@chorus/tree-sitter-utils",
   "version": "0.1.0",
   "private": true,
-  "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "type-check": "tsc --noEmit",
+    "build": "tsc --project tsconfig.prod.json",
+    "type-check": "tsc --project tsconfig.prod.json --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {

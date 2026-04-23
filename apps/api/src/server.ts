@@ -18,7 +18,8 @@ const app = express();
 
 // ── Middleware ──
 app.use(helmet());
-app.use(cors({ origin: config.corsOrigins, credentials: true }));
+app.use(cors({ origin: `${process.env.CORS_ORIGINS}`, methods: ["GET", "POST", "PUT", "DELETE"], credentials: true }));
+app.options("*", cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ── Health Check ──
@@ -44,8 +45,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 // ── Start ──
 async function start() {
   await connectDatabase();
-  app.listen(config.port, () => {
-    logger.info(`Chorus API listening on port ${config.port}`);
+  app.listen(Number(process.env.PORT) || 3001, '0.0.0.0', () => {
+    logger.info(`Chorus API listening on port ${process.env.PORT || 3001}`);
   });
 }
 
