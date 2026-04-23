@@ -13,8 +13,10 @@ import {
     PanelLeftOpen,
     Menu,
     X,
+    LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SignOutButton } from "@clerk/nextjs";
 
 const navLinks = [
     { href: "/", label: "Home", icon: Home },
@@ -164,14 +166,33 @@ export default function Sidebar() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="p-4 border-t border-white/5 flex justify-center items-center h-16 shrink-0">
-                    {(!isCollapsed || isMobileOpen) ? (
-                        <div className="text-xs text-slate-600 text-center font-medium animate-in fade-in duration-300 whitespace-nowrap">
-                            © 2026 Chorus
-                        </div>
-                    ) : (
-                        <Zap className="w-4 h-4 text-slate-600 animate-in fade-in duration-300 shrink-0" />
-                    )}
+                <div className="p-4 border-t border-white/5 space-y-2 shrink-0">
+                    <SignOutButton>
+                        <button 
+                            className={cn(
+                                "flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-red-400 hover:bg-red-400/5 group",
+                                (isCollapsed && !isMobileOpen) ? "justify-center" : "gap-3"
+                            )}
+                            title={(isCollapsed && !isMobileOpen) ? "Log Out" : undefined}
+                        >
+                            <LogOut className="w-4 h-4 shrink-0 transition-colors group-hover:text-red-400" />
+                            {(!isCollapsed || isMobileOpen) && (
+                                <span className="whitespace-nowrap animate-in fade-in duration-300">
+                                    Log Out
+                                </span>
+                            )}
+                        </button>
+                    </SignOutButton>
+
+                    <div className="flex justify-center items-center h-8">
+                        {(!isCollapsed || isMobileOpen) ? (
+                            <div className="text-[10px] text-slate-600 text-center font-medium animate-in fade-in duration-300 whitespace-nowrap">
+                                © 2026 Chorus
+                            </div>
+                        ) : (
+                            <Zap className="w-3.5 h-3.5 text-slate-700 animate-in fade-in duration-300 shrink-0" />
+                        )}
+                    </div>
                 </div>
             </aside>
         </>

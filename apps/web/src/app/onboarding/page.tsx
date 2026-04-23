@@ -20,6 +20,7 @@ import {
     Github,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 const STEPS = [
     "welcome",
@@ -90,6 +91,7 @@ const goals = [
 
 export default function OnboardingPage() {
     const router = useRouter();
+    const { user } = useUser();
     const [currentStep, setCurrentStep] = useState<Step>("welcome");
     const [answers, setAnswers] = useState({
         experience: "",
@@ -142,20 +144,47 @@ export default function OnboardingPage() {
     };
 
     const handleComplete = async () => {
+        // Mark onboarding complete in Clerk user metadata (drives the guard)
         try {
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-            const res = await fetch(`${API_BASE}/api/user/preferences`, {
+            await user?.update({
+                unsafeMetadata: {
+                    ...user.unsafeMetadata,
+                    onboardingComplete: true,
+                    preferences: answers,
+                },
+            });
+        } catch (err) {
+            console.error("Failed to update Clerk metadata:", err);
+        }
+
+        // Fire-and-forget: save preferences + user data to backend DB
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        fetch(`${API_BASE}/api/user/preferences`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                userId: user?.id,
+                preferences: answers,
+                userData: {
+                    username: user?.username,
+                    fullName: user?.fullName,
+                    avatarUrl: user?.imageUrl,
+                    email: user?.primaryEmailAddress?.emailAddress,
+                },
+            }),
+        }).catch((err) => console.error("Error saving preferences:", err));
+
+        // Fire-and-forget: kick off GitHub stats collection in background
+        if (user?.username) {
+            fetch(`${API_BASE}/api/user/collect-github-stats`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify(answers),
-            });
-
-            if (!res.ok) {
-                console.error("Failed to save preferences:", await res.text());
-            }
-        } catch (err) {
-            console.error("Error saving preferences:", err);
+                body: JSON.stringify({
+                    userId: user.id,
+                    githubUsername: user.username,
+                }),
+            }).catch((err) => console.error("Error triggering GitHub stats:", err));
         }
 
         router.push("/projects");
