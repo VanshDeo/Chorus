@@ -49,6 +49,7 @@ export const users = pgTable(
     avatarUrl: text('avatar_url').notNull(),
     email: text('email'),
     skillProfile: jsonb('skill_profile'),
+    onboardingComplete: integer('onboarding_complete').notNull().default(0), // 0 for false, 1 for true
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

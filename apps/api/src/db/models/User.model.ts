@@ -13,6 +13,7 @@ export interface IUser {
   avatarUrl: string;
   email?: string;
   skillProfile?: SkillProfile;
+  onboardingComplete: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ function toUser(row: UserRow): IUser {
     avatarUrl: row.avatarUrl,
     email: row.email ?? undefined,
     skillProfile: (row.skillProfile as SkillProfile) ?? undefined,
+    onboardingComplete: row.onboardingComplete === 1,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -36,6 +38,11 @@ function toUser(row: UserRow): IUser {
 export const UserModel = {
   async findById(id: string): Promise<IUser | null> {
     const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return row ? toUser(row) : null;
+  },
+
+  async findByClerkId(clerkId: string): Promise<IUser | null> {
+    const [row] = await db.select().from(users).where(eq(users.githubId, clerkId)).limit(1);
     return row ? toUser(row) : null;
   },
 
@@ -61,6 +68,7 @@ export const UserModel = {
           avatarUrl: data.avatarUrl ?? existing.avatarUrl,
           email: data.email ?? existing.email,
           skillProfile: (data.skillProfile as object) ?? existing.skillProfile,
+          onboardingComplete: (data as any).onboardingComplete !== undefined ? ((data as any).onboardingComplete ? 1 : 0) : existing.onboardingComplete,
           updatedAt: new Date(),
         })
         .where(eq(users.id, existing.id))
@@ -78,6 +86,7 @@ export const UserModel = {
         avatarUrl: (data.avatarUrl as string) ?? '',
         email: data.email,
         skillProfile: data.skillProfile as object,
+        onboardingComplete: (data as any).onboardingComplete ? 1 : 0,
       })
       .returning();
 

@@ -31,4 +31,28 @@ export class UserController {
       return res.status(500).json({ error: 'Failed to retrieve skill profile' });
     }
   }
+
+  async savePreferences(req: Request, res: Response) {
+    try {
+      const { userId, preferences, userData } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId is required' });
+      const user = await userService.savePreferences(userId, preferences, userData);
+      return res.json(user);
+    } catch (err) {
+      logger.error({ err }, 'Failed to save preferences');
+      return res.status(500).json({ error: 'Failed to save preferences' });
+    }
+  }
+
+  async getStatus(req: Request, res: Response) {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: 'userId is required' });
+      const onboardingComplete = await userService.getOnboardingStatus(userId);
+      return res.json({ onboardingComplete });
+    } catch (err) {
+      logger.error({ err }, 'Failed to get onboarding status');
+      return res.status(500).json({ error: 'Failed to retrieve onboarding status' });
+    }
+  }
 }
