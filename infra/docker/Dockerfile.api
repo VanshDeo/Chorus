@@ -15,14 +15,18 @@ WORKDIR /app
 # First install dependencies
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/package-lock.json ./package-lock.json
-RUN npm ci
+RUN npm install
 
 # Then build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.base.json tsconfig.base.json
-# Build the target app and its internal graph dependencies properly
-RUN npx turbo run build --filter=@chorus/api...
+# copy already built files
+COPY . .
+
+WORKDIR /app/apps/api
+
+CMD ["node", "dist/server.js"]
 
 FROM base AS runner
 WORKDIR /app

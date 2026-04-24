@@ -5,5 +5,5 @@
     "noEmit": false,
     "paths": {}
   },
-  "exclude": ["src/**/*.test.ts", "src/rag/tests/**/*.ts"]
+  "exclude": ["src/**/*.test.ts"]
 }

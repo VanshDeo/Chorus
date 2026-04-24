@@ -12,11 +12,16 @@ RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/package-lock.json ./package-lock.json
-RUN npm ci
+RUN npm install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.base.json tsconfig.base.json
-RUN npx turbo run build --filter=@chorus/mcp...
+# copy already built files
+COPY . .
+
+WORKDIR /app/apps/mcp
+
+CMD ["node", "dist/server.js"]
 
 FROM base AS runner
 WORKDIR /app
