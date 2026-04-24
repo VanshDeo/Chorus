@@ -166,11 +166,14 @@ function generateSuggestedIssues(repoSlug: string): any[] {
 }
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
+import { getRepoUrlFromSlug } from "@/lib/repo-paths";
 
 function IssuesPageContent() {
-    const searchParams = useSearchParams();
-    const urlParam = searchParams.get("url");
+    const params = useParams<{ repo?: string[] }>();
+    const routeParts = Array.isArray(params?.repo) ? params.repo : [];
+    const repoSlug = routeParts.length >= 2 ? `${routeParts[0]}/${routeParts[1]}` : "";
+    const urlParam = repoSlug ? getRepoUrlFromSlug(repoSlug) : "";
 
     const [fetchedIssues, setFetchedIssues] = useState<any[]>([]);
     const [suggestedIssues, setSuggestedIssues] = useState<any[]>([]);
@@ -183,9 +186,6 @@ function IssuesPageContent() {
     const [aiGuide, setAiGuide] = useState<string | null>(null);
     const [relevantFiles, setRelevantFiles] = useState<Array<{ filePath: string; startLine: number; endLine: number; symbolName?: string | null }>>([]);
     const [isGenerating, setIsGenerating] = useState(false);
-
-    // Derive repo slug from URL param
-    const repoSlug = urlParam ? urlParam.replace("https://github.com/", "").replace(/\/$/, "") : "";
 
     useEffect(() => {
         if (!urlParam) {
@@ -340,7 +340,7 @@ function IssuesPageContent() {
                         </div>
                         <h3 className="text-lg font-semibold text-white mb-2">No repository selected</h3>
                         <p className="text-slate-500 text-sm max-w-sm">
-                            Go to the <span className="text-orange-400 font-medium">Analyze</span> page, paste a GitHub URL, and then navigate here to see its issues.
+                            Go to the <span className="text-orange-400 font-medium">Analyze</span> page, analyze a repository, and then navigate here to see its issues.
                         </p>
                     </motion.div>
                 )}

@@ -1,7 +1,8 @@
 // ── Repo Service ────────────────────────────────
 
 import type { Repository } from '@chorus/shared-types';
-import { RepoModel, RepoQuery } from '../../db/models/Repo.model';
+import { RepoModel, RepoQuery, UserRepoMetricsModel, type IRepo } from '../../db/models/Repo.model';
+import type { UserRepoMetricRow } from '../../db/schema';
 import { indexRepoQueue } from '../../queue/indexRepo.queue';
 import { Octokit } from '@octokit/rest';
 import {
@@ -23,6 +24,10 @@ export interface RepoAnalysisResult {
   jobId: string;
   difficulty?: RepoDifficultyResult;
   communityHealth?: CommunityHealthResult;
+  trends?: {
+    difficultyScore?: number;
+    communityHealthScore?: number;
+  };
 }
 
 export class RepoService {
@@ -38,125 +43,187 @@ export class RepoService {
     userId?: string,
     githubUsername?: string,
   ): Promise<RepoAnalysisResult> {
+    const cleanUrl = repoUrl.replace(/\.git$/, '').replace(/\/$/, '');
+    const parts = cleanUrl.split('/');
+    const name = parts.pop() || '';
+    const owner = parts.pop() || '';
+
+    if (!owner || !name) {
+      throw new Error(`Invalid repository URL: ${repoUrl}`);
+    }
+
     console.log(`[RepoService] Analyzing repo: ${owner}/${name}`);
     const githubToken = process.env.GITHUB_TOKEN;
     if (!githubToken) {
       console.warn('[RepoService] GITHUB_TOKEN is missing. GitHub API calls may fail or be rate-limited.');
     }
 
-    // ── Fetch live repo metadata from GitHub ──────────────────────────────────
-    let liveStars = 0;
-    let liveForks = 0;
-    let liveOpenIssues = 0;
+    const octokit = new Octokit({ auth: githubToken || undefined });
+
+    // ── Get Repository and Latest Commit SHA ──────────────────────────────────
+    let repoData: any;
+    let latestSha = '';
+    try {
+      const { data } = await octokit.repos.get({ owner, repo: name });
+      repoData = data;
+      const { data: branchData } = await octokit.repos.getBranch({
+        owner,
+        repo: name,
+        branch: repoData.default_branch,
+      });
+      latestSha = branchData.commit.sha;
+    } catch (err) {
+      console.error(`[RepoService] Error fetching repo/branch data: ${err}`);
+      throw new Error(`Could not fetch data for ${owner}/${name}`);
+    }
+
+    // ── Fetch existing repo from DB ──────────────────────────────────────────
+    let repo = await RepoModel.findOne({ repoUrl });
+    let existingRepoMetrics: UserRepoMetricRow | null = null;
+    if (userId && repo) {
+      existingRepoMetrics = await UserRepoMetricsModel.findOne(userId, repo.id);
+    }
+
+    const isRepoUpToDate = repo?.lastCommitSha === latestSha;
+    const isUserMetricsUpToDate = existingRepoMetrics?.lastCommitSha === latestSha;
+
+    // ── Check if we can return cached results ────────────────────────────────
+    // If the repo and user metrics are already computed for the latest commit,
+    // serve the persisted values directly and avoid re-running indexing.
+    if (isRepoUpToDate && isUserMetricsUpToDate && repo?.communityHealth && existingRepoMetrics?.difficulty) {
+      console.log(`[RepoService] Serving cached metrics for ${owner}/${name} at ${latestSha}`);
+
+      return {
+        repo: repo!.toObject() as unknown as Repository,
+        jobId: `cached-${repo!.id}`,
+        difficulty: existingRepoMetrics.difficulty as RepoDifficultyResult,
+        communityHealth: repo.communityHealth,
+        trends: {
+          difficultyScore: 0,
+          communityHealthScore: 0,
+        },
+      };
+    }
+
+    // ── Recalculate Metrics ──────────────────────────────────────────────────
+    console.log(`[RepoService] Metrics stale or missing for ${owner}/${name}. Recalculating...`);
+
+    let liveStars = repoData.stargazers_count;
+    let liveForks = repoData.forks_count;
+    let liveOpenIssues = repoData.open_issues_count;
     let hasTests = false;
     let hasContributingGuide = false;
     let dependencyCount = 0;
 
     try {
-      console.log(`[RepoService] Fetching metadata for ${owner}/${name}...`);
-      const octokit = new Octokit({ auth: githubToken || undefined });
-      const { data: repoData } = await octokit.repos.get({ owner, repo: name });
-      console.log(`[RepoService] Metadata fetched successfully for ${owner}/${name}`);
-
-      liveStars = repoData.stargazers_count;
-      liveForks = repoData.forks_count;
-      liveOpenIssues = repoData.open_issues_count;
-
       // Check for CONTRIBUTING.md and test directories (best-effort)
-      console.log(`[RepoService] Fetching file tree for ${owner}/${name}...`);
       const { data: rootTree } = await octokit.git.getTree({
         owner,
         repo: name,
-        tree_sha: repoData.default_branch,
+        tree_sha: latestSha,
         recursive: '0',
       });
-      console.log(`[RepoService] File tree fetched for ${owner}/${name}`);
       const rootPaths = rootTree.tree.map((f) => f.path?.toLowerCase() ?? '');
       hasContributingGuide = rootPaths.some((p) => p.includes('contributing'));
       hasTests = rootPaths.some((p) => p === 'tests' || p === 'test' || p === '__tests__' || p === 'spec');
 
-      // Count dependencies from package.json size heuristic
       const pkgJson = rootTree.tree.find((f) => f.path === 'package.json');
       if (pkgJson?.size) {
         dependencyCount = Math.round((pkgJson.size ?? 0) / 30);
       }
     } catch (err) {
-      console.warn('[RepoService] Could not fetch live GitHub metadata:', err);
+      console.warn('[RepoService] Could not fetch file tree:', err);
     }
 
-    // ── Upsert repo record in DB ──────────────────────────────────────────────
-    console.log(`[RepoService] Upserting repo in DB: ${repoUrl}`);
-    let repo = await RepoModel.findOne({ repoUrl });
-    if (!repo) {
-      repo = await RepoModel.create({
-        repoUrl,
-        owner,
-        name,
-        defaultBranch: 'main',
-        stars: liveStars,
-        forks: liveForks,
-        openIssues: liveOpenIssues,
-      });
-    } else {
-      // Keep stars/forks/issues fresh
-      repo.stars = liveStars;
-      repo.forks = liveForks;
-      repo.openIssues = liveOpenIssues;
-      await repo.save();
-    }
-    console.log(`[RepoService] Repo upserted: ${repo.id}`);
-
-    // ── Enqueue background RAG indexing job ───────────────────────────────────
-    console.log(`[RepoService] Enqueuing indexing job for ${repo.id}...`);
-    const job = await indexRepoQueue.add('index-repo', {
-      repoId: repo.id,
-      repoUrl,
-      branch: repo.defaultBranch,
-      userId: userId ?? '',
-    });
-    console.log(`[RepoService] Job enqueued: ${job.id}`);
-
-    const repoObj = repo.toObject() as unknown as Repository;
-    const repoId = `${owner}/${name}`;
-
-    // ── Community Health (always calculated — no user needed) ─────────────────
+    // ── Community Health ─────────────────────────────────────────────────────
     let communityHealth: CommunityHealthResult | undefined;
     try {
-      console.log(`[RepoService] Calculating community health for ${repoId}...`);
       const healthInputs = await fetchCommunityHealthInputs(owner, name, githubToken);
       communityHealth = calculateCommunityHealth(healthInputs);
-      console.log(`[RepoService] Community health for ${repoId}: ${communityHealth.score}% (${communityHealth.label})`);
     } catch (err) {
       console.warn('[RepoService] Community health calculation failed:', err);
     }
 
-    // ── Personalized Difficulty (only when a GitHub username is available) ────
+    // ── Personalized Difficulty ─────────────────────────────────────────────
     let difficulty: RepoDifficultyResult | undefined;
     if (githubUsername) {
       try {
-        console.log(`[RepoService] Calculating difficulty for ${repoId} (user: ${githubUsername})...`);
         const [repoLanguages, userProfile] = await Promise.all([
           fetchRepoLanguages(owner, name, githubToken),
           fetchUserLanguageProfile(githubUsername, githubToken),
         ]);
-
         difficulty = calculateRepoDifficulty(userProfile, repoLanguages, {
           fileCount: 0,
           dependencyCount,
           hasContributingGuide,
           hasTests,
         });
-
-        console.log(
-          `[RepoService] Difficulty for ${repoId} (user: ${githubUsername}): ` +
-          `${difficulty.rampScore}/5 — ${difficulty.rampLabel}`,
-        );
       } catch (err) {
         console.warn('[RepoService] Difficulty calculation failed:', err);
       }
     }
 
-    return { repo: repoObj, jobId: job.id!, difficulty, communityHealth };
+    // ── Calculate Trends ─────────────────────────────────────────────────────
+    const trends = {
+      difficultyScore: 0,
+      communityHealthScore: 0,
+    };
+
+    if (communityHealth && repo?.communityHealth) {
+      trends.communityHealthScore = communityHealth.score - repo.communityHealth.score;
+    }
+    if (difficulty && existingRepoMetrics?.difficulty) {
+      const prevDiff = (existingRepoMetrics.difficulty as RepoDifficultyResult).rampScore;
+      trends.difficultyScore = difficulty.rampScore - prevDiff;
+    }
+
+    // ── Upsert Repo in DB ────────────────────────────────────────────────────
+    if (!repo) {
+      repo = await RepoModel.create({
+        repoUrl,
+        owner,
+        name,
+        defaultBranch: repoData.default_branch,
+        stars: liveStars,
+        forks: liveForks,
+        openIssues: liveOpenIssues,
+        communityHealth,
+        lastCommitSha: latestSha,
+      });
+    } else {
+      repo.stars = liveStars;
+      repo.forks = liveForks;
+      repo.openIssues = liveOpenIssues;
+      repo.communityHealth = communityHealth;
+      repo.lastCommitSha = latestSha;
+      await repo.save();
+    }
+
+    // ── Upsert User Metrics in DB ───────────────────────────────────────────
+    if (userId && difficulty) {
+      await UserRepoMetricsModel.upsert({
+        userId,
+        repoId: repo.id,
+        difficulty,
+        lastCommitSha: latestSha,
+      });
+    }
+
+    // ── Enqueue background RAG indexing job ──────────────────────────────────
+    const job = await indexRepoQueue.add('index-repo', {
+      repoId: repo.id,
+      repoUrl,
+      branch: repo.defaultBranch,
+      userId: userId ?? '',
+    });
+
+    return {
+      repo: repo.toObject() as unknown as Repository,
+      jobId: job.id!,
+      difficulty,
+      communityHealth,
+      trends,
+    };
   }
 
   /**

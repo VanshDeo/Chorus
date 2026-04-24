@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ArchVisualization from "@/components/visualization/ArchVisualization";
 // Removed sampleGraph import
@@ -23,8 +24,15 @@ import {
     ExternalLink,
     X,
 } from "lucide-react";
-
-const STORAGE_KEY = "chorus:analyze:state";
+import {
+    getAnalyzeRoute,
+    getIssuesRoute,
+    getRepoSlug,
+    getRepoUrlFromSlug,
+    PROJECTS_STORAGE_KEY,
+    readSavedAnalysis,
+    saveAnalysisSnapshot,
+} from "@/lib/repo-paths";
 
 const diffColorMap: Record<string, string> = {
     green: "bg-green-500/10 text-green-400 border-green-500/20",
@@ -53,40 +61,52 @@ function formatNumber(num: number): string {
 }
 
 export default function AnalyzePage() {
+    const router = useRouter();
+    const params = useParams<{ repo?: string[] }>();
+    const routeParts = Array.isArray(params?.repo) ? params.repo : [];
+    const routeRepoSlug = routeParts.length >= 2 ? `${routeParts[0]}/${routeParts[1]}` : null;
+    const routeRepoUrl = routeRepoSlug ? getRepoUrlFromSlug(routeRepoSlug) : "https://github.com/vercel/next.js";
+
     const [url, setUrl] = useState("https://github.com/vercel/next.js");
     const [analyzed, setAnalyzed] = useState(false);
     const [loading, setLoading] = useState(false);
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [archData, setArchData] = useState<any>(null);
     const [loadingArch, setLoadingArch] = useState(false);
-    const [hydrated, setHydrated] = useState(false);
 
-    // Restore persisted state on first mount
+    // Restore repo-specific state from the route.
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const { url: savedUrl, analysisData: savedData, analyzed: savedAnalyzed, archData: savedArch } = JSON.parse(saved);
-                if (savedUrl) setUrl(savedUrl);
-                if (savedData) setAnalysisData(savedData);
-                if (savedAnalyzed) setAnalyzed(savedAnalyzed);
-                if (savedArch) setArchData(savedArch);
-            }
-        } catch (e) {
-            // ignore parse errors
+        setUrl(routeRepoUrl);
+
+        if (!routeRepoSlug) {
+            setAnalyzed(false);
+            setAnalysisData(null);
+            setArchData(null);
+            return;
         }
-        setHydrated(true);
-    }, []);
 
-    // Persist state to localStorage whenever it changes
+        const saved = readSavedAnalysis(routeRepoSlug);
+        if (saved) {
+            setUrl(saved.url || routeRepoUrl);
+            setAnalysisData(saved.analysisData ?? null);
+            setAnalyzed(Boolean(saved.analyzed && saved.analysisData));
+            setArchData(saved.archData ?? null);
+        } else {
+            setAnalyzed(false);
+            setAnalysisData(null);
+            setArchData(null);
+        }
+    }, [routeRepoSlug, routeRepoUrl]);
+
+    // Persist state per repository so opening one repo never overwrites another.
     useEffect(() => {
-        if (!hydrated) return;
+        if (!routeRepoSlug || !analysisData || !analyzed) return;
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ url, analysisData, analyzed, archData }));
-        } catch (e) {
+            saveAnalysisSnapshot(routeRepoSlug, { url, analysisData, analyzed, archData });
+        } catch {
             // ignore storage errors
         }
-    }, [url, analysisData, analyzed, hydrated]);
+    }, [routeRepoSlug, url, analysisData, analyzed, archData]);
 
     const handleAnalyze = async () => {
         if (!url) return;
@@ -98,20 +118,37 @@ export default function AnalyzePage() {
                 body: JSON.stringify({ url, githubUsername: "vanshdeo" }),
             });
             const data = await res.json();
+            const repoSlug = getRepoSlug(data.repo?.owner, data.repo?.name);
+            const canonicalUrl = data.repo?.repoUrl ?? url;
+
             setAnalysisData(data);
             setAnalyzed(true);
+            setUrl(canonicalUrl);
+
+            if (repoSlug) {
+                saveAnalysisSnapshot(repoSlug, {
+                    url: canonicalUrl,
+                    analysisData: data,
+                    analyzed: true,
+                    archData: null,
+                });
+            }
             
             // Save to global projects list
             try {
-                const existingList = JSON.parse(localStorage.getItem("chorus:projects:analyzed") || "[]");
+                const existingList = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]");
                 const filteredList = existingList.filter((p: any) => p.repo?.owner !== data.repo?.owner || p.repo?.name !== data.repo?.name);
-                localStorage.setItem("chorus:projects:analyzed", JSON.stringify([data, ...filteredList]));
+                localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify([data, ...filteredList]));
             } catch(e) {
                 console.error("Failed to save to global projects list", e);
             }
             
+            if (repoSlug) {
+                router.push(getAnalyzeRoute(repoSlug));
+            }
+
             // Fire off the architecture pipeline asynchronously
-            fetchArchitectureGraph(data.repo.owner, data.repo.name);
+            fetchArchitectureGraph(data.repo.owner, data.repo.name, repoSlug, data, canonicalUrl);
             
         } catch (error) {
             console.error("Failed to analyze repo:", error);
@@ -120,7 +157,13 @@ export default function AnalyzePage() {
         }
     };
 
-    const fetchArchitectureGraph = async (owner: string, repoName: string) => {
+    const fetchArchitectureGraph = async (
+        owner: string,
+        repoName: string,
+        repoSlug?: string | null,
+        nextAnalysisData?: any,
+        nextUrl?: string,
+    ) => {
         setLoadingArch(true);
         setArchData(null);
         try {
@@ -129,6 +172,14 @@ export default function AnalyzePage() {
             if (res.ok) {
                 const arch = await res.json();
                 setArchData(arch);
+                if (repoSlug && nextAnalysisData) {
+                    saveAnalysisSnapshot(repoSlug, {
+                        url: nextUrl ?? getRepoUrlFromSlug(repoSlug),
+                        analysisData: nextAnalysisData,
+                        analyzed: true,
+                        archData: arch,
+                    });
+                }
             }
         } catch (error) {
             console.error("Failed to fetch architecture:", error);
@@ -142,7 +193,7 @@ export default function AnalyzePage() {
         setAnalyzed(false);
         setAnalysisData(null);
         setArchData(null);
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        router.push("/analyze");
     };
 
     return (
@@ -433,7 +484,7 @@ export default function AnalyzePage() {
                                     className="bg-orange-600 hover:bg-orange-500 text-white border-0 shadow-lg shadow-orange-500/20 px-10 hover:scale-105 transition-transform"
                                     asChild
                                 >
-                                    <a href={`/issues?url=${encodeURIComponent(url)}`}>
+                                    <a href={getIssuesRoute(`${analysisData.repo.owner}/${analysisData.repo.name}`)}>
                                         View Issues for this Repo <ArrowRight className="w-5 h-5 ml-2" />
                                     </a>
                                 </Button>

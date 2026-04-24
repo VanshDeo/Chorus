@@ -1,7 +1,9 @@
 // ── Repo Repository (replaces Mongoose model) ───
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../connection';
-import { repos, type RepoRow } from '../schema';
+import { repos, userRepoMetrics, type RepoRow, type UserRepoMetricRow } from '../schema';
+import { type CommunityHealthResult } from '../../modules/repo/communityHealth';
+import { type RepoDifficultyResult } from '../../modules/repo/repoDifficulty';
 
 // ── Type exported for service compatibility ────────────────────────────────────
 export interface IRepo {
@@ -15,6 +17,8 @@ export interface IRepo {
   stars: number;
   forks: number;
   openIssues: number;
+  communityHealth?: CommunityHealthResult;
+  lastCommitSha?: string;
   lastAnalyzedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +47,8 @@ function toRepo(row: RepoRow): IRepo {
     stars: row.stars,
     forks: row.forks,
     openIssues: row.openIssues,
+    communityHealth: (row.communityHealth as CommunityHealthResult) ?? undefined,
+    lastCommitSha: row.lastCommitSha ?? undefined,
     lastAnalyzedAt: row.lastAnalyzedAt ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -64,6 +70,8 @@ function toRepo(row: RepoRow): IRepo {
         stars: obj.stars,
         forks: obj.forks,
         openIssues: obj.openIssues,
+        communityHealth: obj.communityHealth,
+        lastCommitSha: obj.lastCommitSha,
         lastAnalyzedAt: obj.lastAnalyzedAt,
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt,
@@ -77,6 +85,9 @@ function toRepo(row: RepoRow): IRepo {
           stars: obj.stars,
           forks: obj.forks,
           openIssues: obj.openIssues,
+          communityHealth: obj.communityHealth,
+          lastCommitSha: obj.lastCommitSha,
+          lastAnalyzedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(repos.id, obj.id));
@@ -112,6 +123,8 @@ export const RepoModel = {
     stars?: number;
     forks?: number;
     openIssues?: number;
+    communityHealth?: CommunityHealthResult;
+    lastCommitSha?: string;
   }): Promise<IRepo> {
     const [row] = await db
       .insert(repos)
@@ -125,6 +138,8 @@ export const RepoModel = {
         stars: data.stars ?? 0,
         forks: data.forks ?? 0,
         openIssues: data.openIssues ?? 0,
+        communityHealth: data.communityHealth,
+        lastCommitSha: data.lastCommitSha,
       })
       .returning();
     return toRepo(row);
@@ -136,6 +151,44 @@ export const RepoModel = {
     // Returns a chainable query builder-like object
     const rows = await db.select().from(repos).orderBy(desc(repos.updatedAt));
     return rows.map(toRepo);
+  },
+};
+
+// ── UserRepoMetricsModel ──────────────────────────────────────────────────────
+
+export const UserRepoMetricsModel = {
+  async findOne(userId: string, repoId: string): Promise<UserRepoMetricRow | null> {
+    const [row] = await db
+      .select()
+      .from(userRepoMetrics)
+      .where(sql`${userRepoMetrics.userId} = ${userId} AND ${userRepoMetrics.repoId} = ${repoId}`)
+      .limit(1);
+    return row ?? null;
+  },
+
+  async upsert(data: {
+    userId: string;
+    repoId: string;
+    difficulty: RepoDifficultyResult;
+    lastCommitSha: string;
+  }): Promise<void> {
+    await db
+      .insert(userRepoMetrics)
+      .values({
+        userId: data.userId,
+        repoId: data.repoId,
+        difficulty: data.difficulty,
+        lastCommitSha: data.lastCommitSha,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [userRepoMetrics.userId, userRepoMetrics.repoId],
+        set: {
+          difficulty: data.difficulty,
+          lastCommitSha: data.lastCommitSha,
+          updatedAt: new Date(),
+        },
+      });
   },
 };
 

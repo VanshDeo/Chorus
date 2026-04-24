@@ -72,6 +72,8 @@ export const repos = pgTable(
     stars: integer('stars').notNull().default(0),
     forks: integer('forks').notNull().default(0),
     openIssues: integer('open_issues').notNull().default(0),
+    communityHealth: jsonb('community_health'),
+    lastCommitSha: text('last_commit_sha'),
     lastAnalyzedAt: timestamp('last_analyzed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -177,6 +179,25 @@ export const securityReports = pgTable(
   ],
 );
 
+// ─── user_repo_metrics ───────────────────────────────────────────────────────
+
+export const userRepoMetrics = pgTable(
+  'user_repo_metrics',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    repoId: text('repo_id').notNull(),
+    difficulty: jsonb('difficulty'),
+    lastCommitSha: text('last_commit_sha'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('user_repo_metrics_idx').on(t.userId, t.repoId),
+    index('user_repo_metrics_repo_idx').on(t.repoId),
+  ],
+);
+
 // ─── Inferred Row Types ───────────────────────────────────────────────────────
 
 export type UserRow = typeof users.$inferSelect;
@@ -185,3 +206,4 @@ export type CodeChunkRow = typeof codeChunks.$inferSelect;
 export type RepoIndexRow = typeof repoIndex.$inferSelect;
 export type GraphRow = typeof graphs.$inferSelect;
 export type SecurityReportRow = typeof securityReports.$inferSelect;
+export type UserRepoMetricRow = typeof userRepoMetrics.$inferSelect;

@@ -15,6 +15,7 @@ import {
     Shield,
 } from "lucide-react";
 import Link from "next/link";
+import { getAnalyzeRoute, getIssuesRoute, getRepoSlug, PROJECTS_STORAGE_KEY } from "@/lib/repo-paths";
 
 const difficulties = [
     { label: "All", active: true },
@@ -40,9 +41,11 @@ function getDifficultyColor(score: number): string {
 function mapAnalysisToProject(data: any) {
     const lang = data.difficulty?.dominantLanguages?.[0] || "Unknown";
     const langColor = "blue"; 
+    const repoSlug = getRepoSlug(data.repo?.owner, data.repo?.name) || "";
     return {
         name: data.repo?.name || "Unknown",
         org: data.repo?.owner || "Unknown",
+        repoSlug,
         description: data.repo?.description || "No description available.",
         aiSummary: data.communityHealth?.label ? `Health Score: ${data.communityHealth.score}. ${data.communityHealth.label}` : "Pending complete deep analysis.",
         difficulty: data.difficulty?.rampLabel || "Unknown",
@@ -70,7 +73,7 @@ export default function ProjectsPage() {
 
     useEffect(() => {
         try {
-            const list = JSON.parse(localStorage.getItem("chorus:projects:analyzed") || "[]");
+            const list = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]");
             if (list.length > 0) {
                 setProjectsData(list.map(mapAnalysisToProject));
             }
@@ -227,7 +230,7 @@ export default function ProjectsPage() {
                                         className="flex-1 bg-orange-600 hover:bg-orange-500 text-white border-0 text-xs hover:scale-105 transition-transform"
                                         asChild
                                     >
-                                        <Link href="/issues">
+                                        <Link href={getIssuesRoute(project.repoSlug)}>
                                             View Issues <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                         </Link>
                                     </Button>
@@ -237,7 +240,7 @@ export default function ProjectsPage() {
                                         className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5 text-xs"
                                         asChild
                                     >
-                                        <Link href="/analyze">Analyze</Link>
+                                        <Link href={getAnalyzeRoute(project.repoSlug)}>Analyze</Link>
                                     </Button>
                                 </div>
                             </Card>
