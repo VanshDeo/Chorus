@@ -1,6 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { X, ArrowRight, FolderOpen, FolderClosed, FileText, ChevronRight } from "lucide-react";
 import type { ArchNode, ArchGraph } from "@/types/ArchGraphTypes";
 import { LAYER_COLORS, NODE_TYPE_ICONS } from "@/types/ArchGraphTypes";
@@ -55,38 +56,40 @@ export default function NodeDetailPanel({
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 350, opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="absolute top-0 right-0 w-[320px] h-full bg-[#0d0d0d]/95 backdrop-blur-2xl border-l border-white/5 overflow-y-auto z-20"
+                    className="absolute top-0 right-0 w-[340px] h-full bg-[#0d0d0d]/80 backdrop-blur-3xl border-l border-white/10 overflow-y-auto z-20 shadow-[-20px_0_40px_rgba(0,0,0,0.5)]"
                 >
                     {/* Header */}
-                    <div className="p-5 border-b border-white/5">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl">{NODE_TYPE_ICONS[node.type] ?? "📦"}</span>
+                    <div className="p-6 border-b border-white/5 bg-white/[0.02]">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-2xl border border-white/5">
+                                    {NODE_TYPE_ICONS[node.type] ?? "📦"}
+                                </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-white leading-tight">{node.label}</h3>
-                                    <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                                        {node.type} · depth {node.depth}
+                                    <h3 className="text-base font-black text-white leading-tight uppercase tracking-tight">{node.label}</h3>
+                                    <span className="text-[9px] uppercase tracking-[0.2em] font-black text-orange-500 opacity-80">
+                                        {node.type} • Level {node.depth}
                                     </span>
                                 </div>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition"
+                                className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all border border-white/5"
                             >
-                                <X className="w-3.5 h-3.5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <p className="text-sm text-slate-400 leading-relaxed">{node.description}</p>
+                        <p className="text-xs text-slate-400 leading-relaxed font-medium opacity-90">{node.description}</p>
                     </div>
 
                     {/* Breadcrumb */}
                     {breadcrumb.length > 1 && (
-                        <div className="px-5 py-3 border-b border-white/5">
-                            <div className="flex items-center gap-1 text-[10px] flex-wrap">
+                        <div className="px-6 py-4 border-b border-white/5 bg-white/[0.01]">
+                            <div className="flex items-center gap-1.5 text-[9px] flex-wrap font-black uppercase tracking-widest">
                                 {breadcrumb.map((bc, i) => (
-                                    <span key={bc.id} className="flex items-center gap-1">
-                                        {i > 0 && <ChevronRight className="w-2.5 h-2.5 text-slate-600" />}
-                                        <span className={bc.id === nodeId ? "text-orange-400 font-semibold" : "text-slate-500"}>
+                                    <span key={bc.id} className="flex items-center gap-1.5">
+                                        {i > 0 && <ChevronRight className="w-3 h-3 text-slate-700" />}
+                                        <span className={bc.id === nodeId ? "text-orange-400" : "text-slate-600"}>
                                             {bc.label}
                                         </span>
                                     </span>
@@ -97,22 +100,27 @@ export default function NodeDetailPanel({
 
                     {/* Expand/Collapse action */}
                     {node.isExpandable && (
-                        <div className="px-5 py-3 border-b border-white/5">
+                        <div className="px-6 py-4 border-b border-white/5">
                             <button
                                 onClick={() => onToggleExpand(node.id)}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition text-sm"
+                                className={cn(
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-xs font-black uppercase tracking-widest border",
+                                    isExpanded 
+                                        ? "bg-orange-500/10 border-orange-500/20 text-orange-400" 
+                                        : "bg-white/[0.03] border-white/5 text-slate-400 hover:bg-white/[0.06]"
+                                )}
                             >
                                 {isExpanded ? (
                                     <>
-                                        <FolderOpen className="w-4 h-4 text-orange-400" />
-                                        <span className="text-slate-300">Collapse</span>
-                                        <span className="ml-auto text-[10px] text-slate-500">{node.childCount} children</span>
+                                        <FolderOpen className="w-4 h-4" />
+                                        <span>Collapse View</span>
+                                        <span className="ml-auto opacity-50">{node.childCount}</span>
                                     </>
                                 ) : (
                                     <>
-                                        <FolderClosed className="w-4 h-4 text-slate-400" />
-                                        <span className="text-slate-300">Expand</span>
-                                        <span className="ml-auto text-[10px] text-slate-500">{node.childCount} children</span>
+                                        <FolderClosed className="w-4 h-4" />
+                                        <span>Explore Subsystem</span>
+                                        <span className="ml-auto opacity-50">{node.childCount}</span>
                                     </>
                                 )}
                             </button>
@@ -121,30 +129,29 @@ export default function NodeDetailPanel({
 
                     {/* Children list (when expanded) */}
                     {isExpanded && children.length > 0 && (
-                        <div className="px-5 py-3 border-b border-white/5">
-                            <h4 className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                                Children
+                        <div className="px-6 py-5 border-b border-white/5">
+                            <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <div className="w-2 h-px bg-slate-700" />
+                                Sub-Components
                             </h4>
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 {children.map((child) => (
                                     <button
                                         key={child.id}
                                         onClick={() => onToggleExpand(child.id)}
-                                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition text-left"
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-transparent hover:border-white/5 hover:bg-white/[0.05] transition-all text-left group"
                                     >
-                                        {child.isExpandable ? (
-                                            expandedNodes.has(child.id) ? (
-                                                <FolderOpen className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                                        <div className="p-1.5 rounded-lg bg-white/5 text-slate-500 group-hover:text-orange-400 transition-colors">
+                                            {child.isExpandable ? (
+                                                <FolderClosed className="w-3.5 h-3.5" />
                                             ) : (
-                                                <FolderClosed className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-                                            )
-                                        ) : (
-                                            <FileText className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-                                        )}
-                                        <span className="text-xs text-slate-300 truncate">{child.label}</span>
-                                        <span
-                                            className="ml-auto w-2 h-2 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: LAYER_COLORS[child.layer] }}
+                                                <FileText className="w-3.5 h-3.5" />
+                                            )}
+                                        </div>
+                                        <span className="text-[11px] text-slate-400 font-bold group-hover:text-white transition-colors truncate">{child.label}</span>
+                                        <div
+                                            className="ml-auto w-1.5 h-1.5 rounded-full shadow-[0_0_5px_currentColor]"
+                                            style={{ backgroundColor: LAYER_COLORS[child.layer], color: LAYER_COLORS[child.layer] }}
                                         />
                                     </button>
                                 ))}
@@ -152,23 +159,26 @@ export default function NodeDetailPanel({
                         </div>
                     )}
 
-                    {/* Layer & Type */}
-                    <div className="px-5 py-4 border-b border-white/5 space-y-3">
+                    {/* Metadata Section */}
+                    <div className="px-6 py-6 border-b border-white/5 space-y-5 bg-white/[0.01]">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500 font-medium">Layer</span>
-                            <Badge
-                                style={{
-                                    backgroundColor: `${LAYER_COLORS[node.layer]}15`,
-                                    color: LAYER_COLORS[node.layer],
-                                    borderColor: `${LAYER_COLORS[node.layer]}30`,
-                                }}
-                            >
-                                {layerLabel[node.layer] ?? node.layer}
-                            </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500 font-medium">Depth</span>
-                            <span className="text-xs text-white font-semibold">Level {node.depth}</span>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest mb-1">Architecture Layer</span>
+                                <Badge
+                                    className="rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border"
+                                    style={{
+                                        backgroundColor: `${LAYER_COLORS[node.layer]}10`,
+                                        color: LAYER_COLORS[node.layer],
+                                        borderColor: `${LAYER_COLORS[node.layer]}30`,
+                                    }}
+                                >
+                                    {layerLabel[node.layer] ?? node.layer}
+                                </Badge>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest mb-1">Node Status</span>
+                                <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded-full border border-emerald-500/20">Verified</span>
+                            </div>
                         </div>
                     </div>
 

@@ -47,7 +47,7 @@ export class GraphService {
     try {
       const [owner, name] = repoId.split('/');
 
-      const generatedGraph = await generateArchitectureGraph(owner, name);
+      const generatedGraph = await generateArchitectureGraph(repoId, owner, name, process.env.GITHUB_TOKEN);
       console.log(`[GraphService] Successfully dynamically generated architecture for ${repoId}`);
 
       graph = await GraphModel.create({

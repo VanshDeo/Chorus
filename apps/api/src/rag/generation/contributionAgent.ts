@@ -2,15 +2,13 @@ import type { RetrievedChunk } from "../retrieval/retriever";
 import type { IssueData } from "../../modules/repo/issueDifficulty";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-flash-latest";
 
 export async function generateContributionGuide(
     issue: IssueData,
     chunks: RetrievedChunk[],
     apiKey: string
 ): Promise<string> {
-    const url = `${GEMINI_API_BASE}/models/${GEMINI_MODEL}:generateContent`;
-
     // Build a numbered file index so the model can reference files by number
     const fileIndex = chunks
         .map(
@@ -97,43 +95,49 @@ ${fileIndex || "No relevant code files were retrieved. Provide general guidance 
 
 Generate the contribution guide now. Remember: every step must point to a specific file path and line range.`;
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-            system_instruction: {
-                parts: [{ text: systemPrompt }],
-            },
-            contents: [
-                {
-                    role: "user",
-                    parts: [{ text: userPrompt }],
+    return await callGeminiWithRetry(systemPrompt, userPrompt, apiKey);
+}
+
+async function callGeminiWithRetry(
+    systemPrompt: string,
+    userPrompt: string,
+    apiKey: string
+): Promise<string> {
+    let retries = 5;
+    let delay = 2000;
+    let response: any;
+
+    while (retries > 0) {
+        response = await fetch(`${GEMINI_API_BASE}/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    temperature: 0.15,
+                    maxOutputTokens: 3000,
                 },
-            ],
-            generationConfig: {
-                temperature: 0.15,
-                maxOutputTokens: 3000,
-            },
-        }),
-    });
+            }),
+        });
+
+        if (response.status === 503 || response.status === 429) {
+            const reason = response.status === 503 ? "busy" : "rate limited";
+            console.log(`[ContributionAgent] Gemini API ${reason} (${response.status}), retrying in ${delay}ms... (${retries - 1} left)`);
+            await new Promise(r => setTimeout(r, delay));
+            retries--;
+            delay *= 2;
+            continue;
+        }
+        break;
+    }
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[ContributionAgent] Gemini API error ${response.status}: ${errorText}`);
-        throw new Error(`Gemini generation failed: ${response.status}`);
+        throw new Error(`Gemini generation failed: ${response.status} - ${errorText}`);
     }
 
-    const data = (await response.json()) as {
-        candidates?: Array<{
-            content?: { parts?: Array<{ text?: string }> };
-        }>;
-    };
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "Sorry, I could not generate a contribution guide.";
 
-    return (
-        data.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "Sorry, I could not generate a contribution guide."
-    );
 }

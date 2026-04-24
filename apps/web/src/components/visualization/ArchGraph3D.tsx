@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useMemo, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text, Billboard, Line } from "@react-three/drei";
+import { OrbitControls, Text, Billboard, Line, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import type { ArchNode, ArchGraph } from "@/types/ArchGraphTypes";
 import { LAYER_COLORS, DEPTH_SCALE } from "@/types/ArchGraphTypes";
@@ -43,17 +43,17 @@ function computePositions(
         const idx = siblings.indexOf(node.id);
         const count = siblings.length;
 
-        const childRadius = 3.0 / (node.depth * 0.8 + 1);
+        const childRadius = 4.0 / (node.depth * 0.5 + 1); // Increased radius for better spread
         const angleOffset = parent
             ? Math.atan2(parentPos[2], parentPos[0])
             : 0;
-        const spread = Math.min(Math.PI * 1.2, (Math.PI * 2) / Math.max(2, count + 1));
+        const spread = Math.min(Math.PI * 1.8, (Math.PI * 2.5) / Math.max(2, count)); // Wider spread
         const startAngle = angleOffset - (spread * (count - 1)) / 2;
         const angle = startAngle + idx * spread;
 
         positions.set(node.id, [
             parentPos[0] + Math.cos(angle) * childRadius,
-            parentPos[1] - node.depth * 0.8,
+            parentPos[1] - (0.8 + Math.random() * 0.4), // Jitter Y slightly to prevent perfect stacking
             parentPos[2] + Math.sin(angle) * childRadius,
         ]);
     }
@@ -87,7 +87,7 @@ function GraphNode({
     const targetPos = useRef(new THREE.Vector3(...position));
     const color = LAYER_COLORS[node.layer] || "#888888";
     const scale = DEPTH_SCALE[node.depth] ?? 0.5;
-    const baseRadius = (0.3 + node.size * 0.05) * scale;
+    const baseRadius = (0.35 + node.size * 0.05) * scale; // Slightly larger nodes
     const active = isSelected || isHovered;
 
     // Update target when position changes
@@ -101,6 +101,9 @@ function GraphNode({
         // Rotate main mesh
         if (meshRef.current) {
             meshRef.current.rotation.y += delta * (node.depth === 0 ? 0.15 : 0.3);
+            if (active) {
+                meshRef.current.rotation.x += delta * 0.5;
+            }
         }
         // Glow scale
         if (glowRef.current) {
@@ -115,8 +118,8 @@ function GraphNode({
         <group ref={groupRef} position={position}>
             {/* Glow */}
             <mesh ref={glowRef} scale={[0, 0, 0]}>
-                <sphereGeometry args={[baseRadius * 2.5, 12, 12]} />
-                <meshBasicMaterial color={color} transparent opacity={0.06} depthWrite={false} />
+                <sphereGeometry args={[baseRadius * 2.8, 16, 16]} />
+                <meshBasicMaterial color={color} transparent opacity={0.1} depthWrite={false} />
             </mesh>
 
             {/* Main shape */}
@@ -128,7 +131,7 @@ function GraphNode({
             >
                 {node.type === "cluster" ? (
                     <dodecahedronGeometry args={[baseRadius, 0]} />
-                ) : node.depth === 1 ? (
+                ) : node.depth <= 1 ? (
                     <icosahedronGeometry args={[baseRadius, 1]} />
                 ) : (
                     <sphereGeometry args={[baseRadius, 16, 16]} />
@@ -136,39 +139,45 @@ function GraphNode({
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={active ? 0.9 : isExpanded ? 0.5 : 0.2}
-                    roughness={0.3}
-                    metalness={0.5}
+                    emissiveIntensity={active ? 1.2 : isExpanded ? 0.6 : 0.3}
+                    roughness={0.2}
+                    metalness={0.6}
                     transparent
-                    opacity={active ? 1 : 0.85}
+                    opacity={active ? 1 : 0.9}
                 />
             </mesh>
 
             {/* Selection ring */}
             {isSelected && (
                 <mesh rotation={[Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[baseRadius * 1.6, baseRadius * 1.8, 32]} />
-                    <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+                    <ringGeometry args={[baseRadius * 1.8, baseRadius * 2.0, 32]} />
+                    <meshBasicMaterial color="#ffffff" transparent opacity={0.5} side={THREE.DoubleSide} />
                 </mesh>
             )}
 
             {/* Expand indicator for expandable nodes */}
             {node.isExpandable && !isExpanded && (
                 <mesh position={[baseRadius + 0.15, -baseRadius - 0.15, 0]}>
-                    <circleGeometry args={[0.12, 16]} />
-                    <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+                    <sphereGeometry args={[0.08, 16, 16]} />
+                    <meshBasicMaterial color="#f97316" />
                 </mesh>
             )}
 
-            {/* Label */}
+            {/* Label with improved legibility */}
             <Billboard follow lockX={false} lockY={false} lockZ={false}>
+                {/* Subtle dark backing for label */}
+                <mesh position={[0, baseRadius + 0.28, -0.01]}>
+                   <planeGeometry args={[node.label.length * 0.12 + 0.4, 0.4]} />
+                   <meshBasicMaterial color="#000000" transparent opacity={0.5} depthWrite={false} />
+                </mesh>
                 <Text
-                    position={[0, baseRadius + 0.25, 0]}
-                    fontSize={0.22 * (scale + 0.3)}
-                    color={active ? "#ffffff" : "#94a3b8"}
+                    position={[0, baseRadius + 0.28, 0]}
+                    fontSize={0.24 * (scale + 0.3)}
+                    color={active ? "#ffffff" : "#cbd5e1"}
                     anchorX="center"
                     anchorY="bottom"
-                    maxWidth={3}
+                    maxWidth={4}
+                    font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.woff"
                 >
                     {node.label}
                 </Text>
@@ -176,10 +185,11 @@ function GraphNode({
                 {node.isExpandable && node.childCount > 0 && (
                     <Text
                         position={[0, -(baseRadius + 0.2), 0]}
-                        fontSize={0.15}
-                        color={isExpanded ? "#f97316" : "#64748b"}
+                        fontSize={0.16}
+                        color={isExpanded ? "#f97316" : "#94a3b8"}
                         anchorX="center"
                         anchorY="top"
+                        fontWeight="bold"
                     >
                         {isExpanded ? "▼" : "▶"} {node.childCount}
                     </Text>
@@ -284,6 +294,7 @@ function Scene({
     onSelect,
     onHover,
     onUnhover,
+    autoRotate,
 }: {
     graph: ArchGraph;
     visibleNodes: ArchNode[];
@@ -294,6 +305,7 @@ function Scene({
     onSelect: (id: string) => void;
     onHover: (id: string) => void;
     onUnhover: () => void;
+    autoRotate: boolean;
 }) {
     const positions = useMemo(
         () => computePositions(visibleNodes, graph.nodes, expandedNodes),
@@ -309,13 +321,30 @@ function Scene({
     return (
         <>
             <Background />
-            <ambientLight intensity={0.35} />
-            <pointLight position={[10, 12, 10]} intensity={0.9} color="#f97316" />
-            <pointLight position={[-8, -4, -8]} intensity={0.3} color="#3b82f6" />
+            <ambientLight intensity={0.2} />
+            <pointLight position={[15, 20, 15]} intensity={1.5} color="#ffffff" castShadow />
+            <pointLight position={[-15, -10, -15]} intensity={0.5} color="#3b82f6" />
+            <spotLight position={[0, 20, 0]} intensity={1} angle={0.6} penumbra={1} color="#f97316" />
 
-            <OrbitRing radius={6} opacity={0.06} />
+            <OrbitRing radius={6} opacity={0.04} />
+            <OrbitRing radius={12} opacity={0.02} />
 
-            <Particles />
+            <Particles count={100} />
+            
+            {/* Grid Floor */}
+            <Grid
+                position={[0, -10, 0]}
+                args={[100, 100]}
+                cellSize={1}
+                cellThickness={0.5}
+                cellColor="#1e293b"
+                sectionSize={5}
+                sectionThickness={1}
+                sectionColor="#334155"
+                fadeDistance={50}
+                fadeStrength={1}
+                infiniteGrid
+            />
 
             {/* Edges */}
             {visibleEdges.map((edge, i) => {
@@ -350,10 +379,10 @@ function Scene({
                 enablePan
                 enableZoom
                 enableRotate
-                autoRotate
-                autoRotateSpeed={0.25}
-                maxDistance={25}
-                minDistance={4}
+                autoRotate={autoRotate}
+                autoRotateSpeed={0.15}
+                maxDistance={40}
+                minDistance={2}
                 makeDefault
             />
         </>
@@ -371,6 +400,7 @@ export default function ArchGraph3D({
     onSelectNode,
     onHoverNode,
     onUnhoverNode,
+    autoRotate,
 }: {
     graph: ArchGraph;
     visibleNodes: ArchNode[];
@@ -381,6 +411,7 @@ export default function ArchGraph3D({
     onSelectNode: (id: string) => void;
     onHoverNode: (id: string) => void;
     onUnhoverNode: () => void;
+    autoRotate: boolean;
 }) {
     return (
         <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }}>
@@ -411,6 +442,7 @@ export default function ArchGraph3D({
                         onSelect={onSelectNode}
                         onHover={onHoverNode}
                         onUnhover={onUnhoverNode}
+                        autoRotate={autoRotate}
                     />
                 </Suspense>
             </Canvas>

@@ -127,13 +127,13 @@ export interface ArchGraph {
 
 // Layer → color mapping
 export const LAYER_COLORS: Record<string, string> = {
-    ui: "#22d3ee",      // cyan
-    api: "#f97316",     // orange
-    service: "#a855f7", // purple
-    domain: "#ec4899",  // pink
-    data: "#22c55e",    // green
-    infra: "#3b82f6",   // blue
-    config: "#eab308",  // yellow
+    ui: "#06b6d4",      // vibrant cyan
+    api: "#f97316",     // bright orange
+    service: "#8b5cf6", // vivid purple
+    domain: "#f43f5e",  // rose red
+    data: "#10b981",    // emerald green
+    infra: "#3b82f6",   // royal blue
+    config: "#f59e0b",  // amber/gold
 };
 
 export const NODE_TYPE_ICONS: Record<string, string> = {

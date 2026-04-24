@@ -37,3 +37,16 @@ tmp/
 temp/
 
 .env
+
+# Temporary/Test files
+test_arch.ts
+test_output.json
+architecture_result.json
+scratch/
+apps/api/test_arch.ts
+apps/api/architecture_result.json
+apps/api/test_output.json
+apps/api/test_arch.js
+apps/api/test_arch.ts
+**/architecture_result.json
+**/test_output.json

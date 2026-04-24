@@ -10,10 +10,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@chorus/graph-utils": "*",
     "@chorus/shared-types": "*",
     "@chorus/tree-sitter-utils": "*",
-    "@chorus/graph-utils": "*",
     "bullmq": "^5.0.0",
+    "dotenv": "^17.4.2",
     "ioredis": "^5.3.0",
     "pino": "^8.18.0"
   },

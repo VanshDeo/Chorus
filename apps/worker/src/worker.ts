@@ -1,4 +1,5 @@
 // ── Worker Bootstrap ────────────────────────────
+import 'dotenv/config';
 
 import { QueueName } from '@chorus/shared-types';
 import { registerIndexRepoJob } from './jobs/indexRepo.job';

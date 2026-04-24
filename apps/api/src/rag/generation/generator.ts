@@ -29,7 +29,7 @@ export interface GenerateResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-flash-latest";
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
@@ -57,70 +57,58 @@ export async function generate(
     return generateExtractiveAnswer(question, chunks);
   }
 
-  return await generateWithGemini(assembled.systemPrompt, assembled.userPrompt, assembled.citationMap, apiKey);
+  return await callGeminiWithRetry(assembled.systemPrompt, assembled.userPrompt, assembled.citationMap, apiKey);
 }
 
-// ─── Gemini Generation ────────────────────────────────────────────────────────
-
-async function generateWithGemini(
-  systemPrompt: string,
-  userPrompt: string,
-  citationMap: Record<string, { filePath: string; startLine: number; endLine: number; symbolName?: string | null }>,
-  apiKey: string
+async function callGeminiWithRetry(
+    systemPrompt: string,
+    userPrompt: string,
+    citationMap: Record<string, any>,
+    apiKey: string
 ): Promise<GenerateResult> {
-  const url = `${GEMINI_API_BASE}/models/${GEMINI_MODEL}:generateContent`;
+    let retries = 5;
+    let delay = 2000;
+    let response: any;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: systemPrompt }],
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: userPrompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2, // Low temperature for factual grounded answers
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
+    while (retries > 0) {
+        response = await fetch(`${GEMINI_API_BASE}/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    temperature: 0.2,
+                    maxOutputTokens: 2048,
+                },
+            }),
+        });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Generator] Gemini API error ${response.status}: ${errorText}`);
-    throw new Error(`Gemini generation failed: ${response.status}`);
-  }
+        if (response.status === 503 || response.status === 429) {
+            const reason = response.status === 503 ? "busy" : "rate limited";
+            console.log(`[Generator] Gemini API ${reason} (${response.status}), retrying in ${delay}ms... (${retries - 1} left)`);
+            await new Promise(r => setTimeout(r, delay));
+            retries--;
+            delay *= 2;
+            continue;
+        }
+        break;
+    }
 
-  const data = (await response.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini generation failed: ${response.status} - ${errorText}`);
+    }
 
-  const answerText =
-    data.candidates?.[0]?.content?.parts?.[0]?.text ??
-    "Sorry, I could not generate an answer.";
+    const data = await response.json();
+    const answerText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "Sorry, I could not generate an answer.";
+    const citations = extractCitationsFromAnswer(answerText, citationMap);
+    const confidence = Math.min(0.95, 0.3 + citations.length * 0.1);
 
-  // Extract citations referenced in the answer
-  const citations = extractCitationsFromAnswer(answerText, citationMap);
-
-  // Rough confidence based on how many citations were used
-  const confidence = Math.min(0.95, 0.3 + citations.length * 0.1);
-
-  return {
-    answer: answerText,
-    citations,
-    confidence,
-  };
+    return { answer: answerText, citations, confidence };
 }
+
+
 
 // ─── Extractive Fallback ──────────────────────────────────────────────────────
 

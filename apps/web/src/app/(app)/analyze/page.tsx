@@ -512,7 +512,7 @@ export default function AnalyzePage() {
                                         </p>
                                     </Card>
                                 ) : archData ? (
-                                    <ArchVisualization graph={archData} />
+                                    <ArchVisualization data={archData} />
                                 ) : (
                                     <Card className="bg-[#121212] border-white/5 h-[300px] flex items-center justify-center">
                                         <p className="text-slate-500 flex items-center gap-2">

@@ -13,6 +13,7 @@ import {
     Menu,
     X,
     LogOut,
+    Beaker,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
@@ -22,6 +23,7 @@ const navLinks = [
     { href: "/analyze", label: "Analyze", icon: Search },
     { href: "/issues", label: "Issues", icon: Target },
     { href: "/profile", label: "Profile", icon: User },
+    { href: "/archvisalization", label: "Lab", icon: Beaker },
 ];
 
 const ANALYZE_STORAGE_KEY = "chorus:analyze:state";
