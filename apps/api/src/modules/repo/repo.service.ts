@@ -200,7 +200,7 @@ export class RepoService {
     }
 
     // ── Upsert User Metrics in DB ───────────────────────────────────────────
-    if (userId && difficulty) {
+    if (userId) {
       await UserRepoMetricsModel.upsert({
         userId,
         repoId: repo.id,

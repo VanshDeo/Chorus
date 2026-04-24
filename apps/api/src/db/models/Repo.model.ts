@@ -169,7 +169,7 @@ export const UserRepoMetricsModel = {
   async upsert(data: {
     userId: string;
     repoId: string;
-    difficulty: RepoDifficultyResult;
+    difficulty?: RepoDifficultyResult;
     lastCommitSha: string;
   }): Promise<void> {
     await db

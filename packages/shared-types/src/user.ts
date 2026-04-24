@@ -14,6 +14,30 @@ export interface User {
   updatedAt: Date;
 }
 
+export interface AnalyzedProject {
+  repo: {
+    id: string;
+    repoUrl: string;
+    owner: string;
+    name: string;
+    defaultBranch: string;
+    description?: string;
+    language?: string;
+    stars: number;
+    forks: number;
+    openIssues: number;
+    communityHealth?: unknown;
+    lastCommitSha?: string;
+    lastAnalyzedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  difficulty?: unknown;
+  lastCommitSha?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SkillProfile {
   userId: string;
   skillVector: SkillVector;

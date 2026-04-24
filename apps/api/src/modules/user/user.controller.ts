@@ -55,4 +55,16 @@ export class UserController {
       return res.status(500).json({ error: 'Failed to retrieve onboarding status' });
     }
   }
+
+  async getAnalyzedProjects(req: Request, res: Response) {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: 'userId is required' });
+      const projects = await userService.getAnalyzedProjects(userId);
+      return res.json({ projects });
+    } catch (err) {
+      logger.error({ err }, 'Failed to get analyzed projects');
+      return res.status(500).json({ error: 'Failed to retrieve analyzed projects' });
+    }
+  }
 }

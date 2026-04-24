@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,20 +69,47 @@ const diffColorMap: Record<string, string> = {
 };
 
 export default function ProjectsPage() {
+    const { isLoaded, isSignedIn, user } = useUser();
     const [projectsData, setProjectsData] = useState<any[]>([]);
     const [hydrated, setHydrated] = useState(false);
 
     useEffect(() => {
-        try {
-            const list = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]");
-            if (list.length > 0) {
-                setProjectsData(list.map(mapAnalysisToProject));
+        const loadProjects = async () => {
+            try {
+                if (isLoaded && isSignedIn && user?.id) {
+                    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+                    const res = await fetch(`${API_BASE}/api/user/analyzed-projects?userId=${encodeURIComponent(user.id)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const projects = (data.projects || []).map((entry: any) => ({
+                            repo: entry.repo,
+                            difficulty: entry.difficulty,
+                            communityHealth: entry.repo?.communityHealth,
+                        }));
+                        setProjectsData(projects.map(mapAnalysisToProject));
+                        try {
+                            localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        setHydrated(true);
+                        return;
+                    }
+                }
+
+                const list = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]");
+                if (list.length > 0) {
+                    setProjectsData(list.map(mapAnalysisToProject));
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setHydrated(true);
             }
-        } catch (e) {
-            console.error(e);
-        }
-        setHydrated(true);
-    }, []);
+        };
+
+        loadProjects();
+    }, [isLoaded, isSignedIn, user?.id]);
 
     return (
         <div className="relative">

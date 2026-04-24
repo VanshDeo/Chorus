@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import ArchVisualization from "@/components/visualization/ArchVisualization";
 // Removed sampleGraph import
@@ -104,6 +105,7 @@ function buildLoreText(analysisData: any): string {
 
 export default function AnalyzePage() {
     const router = useRouter();
+    const { user } = useUser();
     const params = useParams<{ repo?: string[] }>();
     const routeParts = Array.isArray(params?.repo) ? params.repo : [];
     const routeRepoSlug = routeParts.length >= 2 ? `${routeParts[0]}/${routeParts[1]}` : null;
@@ -157,7 +159,7 @@ export default function AnalyzePage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/repo/analyze`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url, githubUsername: "vanshdeo" }),
+                body: JSON.stringify({ url, githubUsername: user?.username, userId: user?.id }),
             });
             const data = await res.json();
             const repoSlug = getRepoSlug(data.repo?.owner, data.repo?.name);
