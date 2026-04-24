@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
-    Home,
     GitBranch,
     Search,
     Target,
@@ -19,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
 
 const navLinks = [
-    { href: "/", label: "Home", icon: Home },
     { href: "/projects", label: "Projects", icon: GitBranch },
     { href: "/analyze", label: "Analyze", icon: Search },
     { href: "/issues", label: "Issues", icon: Target },
@@ -102,7 +100,7 @@ export default function Sidebar() {
                     "h-14 flex items-center border-b border-white/5 transition-all overflow-hidden shrink-0",
                     isCollapsed && !isMobileOpen ? "justify-center px-0" : "px-5"
                 )}>
-                    <Link href="/" className="flex items-center gap-2 group min-w-max">
+                    <Link href="/projects" className="flex items-center gap-2 group min-w-max">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow shrink-0">
                             <Zap className="w-4 h-4 text-white" />
                         </div>

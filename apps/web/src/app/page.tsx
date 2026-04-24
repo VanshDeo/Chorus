@@ -1,5 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -79,6 +82,19 @@ const howItWorks = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace("/projects");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  if (isLoaded && isSignedIn) {
+    return null;
+  }
+
   return (
     <div className="bg-[#0a0a0a] min-h-screen">
       {/* STANDALONE NAVBAR */}
