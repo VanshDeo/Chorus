@@ -1,6 +1,7 @@
 // ── Environment Configuration ────────────────────
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ override: true });
 import { z } from 'zod';
 
 const envSchema = z.object({

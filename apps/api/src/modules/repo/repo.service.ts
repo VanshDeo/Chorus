@@ -28,6 +28,8 @@ export interface RepoAnalysisResult {
     difficultyScore?: number;
     communityHealthScore?: number;
   };
+  purpose?: string;
+  lore?: string;
 }
 
 export class RepoService {
@@ -93,6 +95,8 @@ export class RepoService {
     if (isRepoUpToDate && isUserMetricsUpToDate && repo?.communityHealth && existingRepoMetrics?.difficulty) {
       console.log(`[RepoService] Serving cached metrics for ${owner}/${name} at ${latestSha}`);
 
+      const loreAndPurpose = await generateLoreAndPurpose(owner, name, octokit);
+
       return {
         repo: repo!.toObject() as unknown as Repository,
         jobId: `cached-${repo!.id}`,
@@ -102,6 +106,8 @@ export class RepoService {
           difficultyScore: 0,
           communityHealthScore: 0,
         },
+        purpose: loreAndPurpose.purpose,
+        lore: loreAndPurpose.lore,
       };
     }
 
@@ -177,6 +183,9 @@ export class RepoService {
       trends.difficultyScore = difficulty.rampScore - prevDiff;
     }
 
+    // ── Generate Lore & Purpose ──────────────────────────────────────────────
+    const loreAndPurpose = await generateLoreAndPurpose(owner, name, octokit);
+
     // ── Upsert Repo in DB ────────────────────────────────────────────────────
     if (!repo) {
       repo = await RepoModel.create({
@@ -223,6 +232,8 @@ export class RepoService {
       difficulty,
       communityHealth,
       trends,
+      purpose: loreAndPurpose.purpose,
+      lore: loreAndPurpose.lore,
     };
   }
 
@@ -241,4 +252,48 @@ export class RepoService {
     const repos = await RepoQuery.find().sort({ updatedAt: -1 }).skip(offset).limit(limit);
     return repos.map((r) => r.toObject() as unknown as Repository);
   }
+}
+
+async function generateLoreAndPurpose(owner: string, name: string, octokit: Octokit): Promise<{ purpose?: string; lore?: string }> {
+  try {
+    const { data } = await octokit.repos.getReadme({ owner, repo: name });
+    const readmeContent = Buffer.from(data.content, 'base64').toString('utf-8');
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return {};
+
+    const prompt = `Based on the following README for ${owner}/${name}, please provide:
+1. The main purpose of the project (1-2 sentences).
+2. The project lore, history, or background (1-2 sentences).
+
+Return the result as a strict JSON object:
+{
+  "purpose": "...",
+  "lore": "..."
+}
+
+README snippet:
+${readmeContent.substring(0, 4000)}
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return JSON.parse(text);
+      }
+    }
+  } catch (err) {
+    console.warn('[RepoService] Failed to generate lore and purpose from README:', err);
+  }
+  return {};
 }

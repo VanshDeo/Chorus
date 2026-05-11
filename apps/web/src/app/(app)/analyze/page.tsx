@@ -62,6 +62,10 @@ function formatNumber(num: number): string {
 }
 
 function buildPurposeText(analysisData: any): string {
+    if (analysisData?.purpose) {
+        return analysisData.purpose;
+    }
+
     const repo = analysisData?.repo;
     const difficulty = analysisData?.difficulty;
 
@@ -77,6 +81,10 @@ function buildPurposeText(analysisData: any): string {
 }
 
 function buildLoreText(analysisData: any): string {
+    if (analysisData?.lore) {
+        return analysisData.lore;
+    }
+
     const repo = analysisData?.repo;
     const communityHealth = analysisData?.communityHealth;
     const difficulty = analysisData?.difficulty;
