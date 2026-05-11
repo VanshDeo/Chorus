@@ -174,13 +174,26 @@ export default function AnalyzePage() {
         if (!targetUrl) return;
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/repo/analyze`, {
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+            const apiUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+
+            const res = await fetch(`${apiUrl}/api/repo/analyze`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ url: targetUrl, githubUsername: user?.username, userId: user?.id }),
             });
+            
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Server responded with status ${res.status}`);
+            }
+
             const data = await res.json();
-            const repoSlug = getRepoSlug(data.repo?.owner, data.repo?.name);
+            if (!data || !data.repo) {
+                throw new Error("Invalid response format from server");
+            }
+
+            const repoSlug = getRepoSlug(data.repo.owner, data.repo.name);
             const canonicalUrl = data.repo?.repoUrl ?? targetUrl;
 
             setAnalysisData(data);
@@ -229,8 +242,11 @@ export default function AnalyzePage() {
         setLoadingArch(true);
         setArchData(null);
         try {
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+            const apiUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+
             const encodeId = encodeURIComponent(`${owner}/${repoName}`);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/repo/${encodeId}/graph?level=architecture`);
+            const res = await fetch(`${apiUrl}/api/repo/${encodeId}/graph?level=architecture`);
             if (res.ok) {
                 const arch = await res.json();
                 setArchData(arch);

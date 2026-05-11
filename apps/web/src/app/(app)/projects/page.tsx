@@ -77,8 +77,9 @@ export default function ProjectsPage() {
         const loadProjects = async () => {
             try {
                 if (isLoaded && isSignedIn && user?.id) {
-                    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-                    const res = await fetch(`${API_BASE}/api/user/analyzed-projects?userId=${encodeURIComponent(user.id)}`);
+                    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, '');
+                    const apiUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+                    const res = await fetch(`${apiUrl}/api/user/analyzed-projects?userId=${encodeURIComponent(user.id)}`);
                     if (res.ok) {
                         const data = await res.json();
                         const projects = (data.projects || []).map((entry: any) => ({

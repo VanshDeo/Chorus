@@ -79,8 +79,15 @@ export class RepoController {
          return res.status(400).json({ error: 'Invalid or missing GitHub URL' });
       }
 
-      const repoPath = url.replace('https://github.com/', '');
-      const [owner, repoName] = repoPath.split('/');
+      let owner = '', repoName = '';
+      try {
+        const parsedPath = new URL(url).pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+        const parts = parsedPath.split('/');
+        owner = parts[0] || '';
+        repoName = parts[1] || '';
+      } catch (e) {
+        // Fallback or invalid
+      }
 
       if (!owner || !repoName) {
            return res.status(400).json({ error: 'Invalid GitHub URL format' });

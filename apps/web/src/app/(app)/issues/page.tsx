@@ -198,9 +198,10 @@ function IssuesPageContent() {
         const fetchIssues = async () => {
             setLoading(true);
             try {
-                const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+                const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, '');
+                const apiUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
                 const encodedRepoUrl = encodeURIComponent(urlParam);
-                const res = await fetch(`${API_BASE}/api/repo/issues?url=${encodedRepoUrl}`);
+                const res = await fetch(`${apiUrl}/api/repo/issues?url=${encodedRepoUrl}`);
                 if (res.ok) {
                     const data = await res.json();
                     const mappedIssues = (data.issues || []).map((issue: any) => ({
@@ -254,10 +255,11 @@ function IssuesPageContent() {
         setAiGuide(null);
         setRelevantFiles([]);
         try {
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, '');
+            const apiUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
             const encodedRepoId = encodeURIComponent(issue.repo);
             const issueNum = issue.issueNumber ?? issue.id;
-            const res = await fetch(`${API_BASE}/api/repo/${encodedRepoId}/issues/${issueNum}/guide`, {
+            const res = await fetch(`${apiUrl}/api/repo/${encodedRepoId}/issues/${issueNum}/guide`, {
                 credentials: "include"
             });
             if (res.ok) {

@@ -11,7 +11,7 @@ export function getRepoUrlFromSlug(repoSlug?: string | null): string {
 }
 
 export function getAnalyzeRoute(repoSlug: string): string {
-  return `/analyze/${repoSlug}`;
+  return `/analyze?repo=${encodeURIComponent(repoSlug)}`;
 }
 
 export function getIssuesRoute(repoSlug: string): string {

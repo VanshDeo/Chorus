@@ -45,10 +45,20 @@ export class RepoService {
     userId?: string,
     githubUsername?: string,
   ): Promise<RepoAnalysisResult> {
-    const cleanUrl = repoUrl.replace(/\.git$/, '').replace(/\/$/, '');
-    const parts = cleanUrl.split('/');
-    const name = parts.pop() || '';
-    const owner = parts.pop() || '';
+    let parsedPath = repoUrl;
+    try {
+      // Try to parse as full URL to remove query parameters and hashes
+      parsedPath = new URL(repoUrl).pathname;
+    } catch {
+      // Fallback if it's already just 'owner/repo'
+    }
+
+    // Clean up leading/trailing slashes, and remove .git extension
+    parsedPath = parsedPath.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+    
+    const parts = parsedPath.split('/');
+    const owner = parts[0] || '';
+    const name = parts[1] || '';
 
     if (!owner || !name) {
       throw new Error(`Invalid repository URL: ${repoUrl}`);
@@ -286,7 +296,7 @@ ${readmeContent.substring(0, 4000)}
     });
 
     if (response.ok) {
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
         return JSON.parse(text);
