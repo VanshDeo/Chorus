@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import ArchVisualization from "@/components/visualization/ArchVisualization";
@@ -114,9 +114,16 @@ function buildLoreText(analysisData: any): string {
 export default function AnalyzePage() {
     const router = useRouter();
     const { user } = useUser();
+    const searchParams = useSearchParams();
+    const queryRepo = searchParams?.get('repo');
+    
     const params = useParams<{ repo?: string[] }>();
     const routeParts = Array.isArray(params?.repo) ? params.repo : [];
-    const routeRepoSlug = routeParts.length >= 2 ? `${routeParts[0]}/${routeParts[1]}` : null;
+    
+    const routeRepoSlug = queryRepo 
+        ? decodeURIComponent(queryRepo) 
+        : (routeParts.length >= 2 ? `${routeParts[0]}/${routeParts[1]}` : null);
+        
     const routeRepoUrl = routeRepoSlug ? getRepoUrlFromSlug(routeRepoSlug) : "https://github.com/vercel/next.js";
 
     const [url, setUrl] = useState("https://github.com/vercel/next.js");

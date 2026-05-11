@@ -54,7 +54,7 @@ export class GraphService {
         repoId,
         level,
         commitSha: commitSha || 'latest',
-        ...generatedGraph,
+        ...generatedGraph.architecture,
       });
 
       return graph.toObject();

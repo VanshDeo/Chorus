@@ -10,7 +10,9 @@ const graphService = new GraphService();
 export class GraphController {
   async getGraph(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.owner && req.params.repo 
+        ? `${req.params.owner}/${req.params.repo}` 
+        : req.params.id;
       const level = (req.query.level as string) || 'module';
       const commitSha = req.query.commitSha as string | undefined;
 
