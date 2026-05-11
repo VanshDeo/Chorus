@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "types": ["node"],
@@ -10,5 +9,5 @@
     "baseUrl": "./src"
 
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../../apps/api/src/rag/**/*.ts"]
 }

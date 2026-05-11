@@ -1,35 +1,49 @@
 // ── Index Repo Processor ────────────────────────
 import type { IndexRepoJobPayload } from '@chorus/shared-types';
-import { shallowClone, cleanupRepo } from '../sandbox/clone';
+import { fetchRepository, parseGitHubUrl } from '../../../../apps/api/src/rag/ingestion/githubFetcher';
+import { filterFiles } from '../../../../apps/api/src/rag/ingestion/fileFilter';
+import { chunkFiles } from '../../../../apps/api/src/rag/ingestion/astChunker';
+import { embedChunks } from '../../../../apps/api/src/rag/embeddings/embeddingEngine';
+import { writeToVectorStore, fetchLatestCommitHash } from '../../../../apps/api/src/rag/vectorstore/vectorStoreWriter';
 
 export async function processIndexRepo(payload: IndexRepoJobPayload): Promise<void> {
   const { repoId, repoUrl, branch } = payload;
-  let repoPath: string | null = null;
 
   try {
-    // 1. Shallow clone
-    repoPath = await shallowClone(repoUrl, branch);
+    const { owner, repo } = parseGitHubUrl(repoUrl);
+    const githubToken = process.env.GITHUB_TOKEN;
 
-    // 2. Filter valid files (skip node_modules, binaries)
-    // Placeholder: scan directory for valid source files
+    // 1. Fetch latest commit hash to see if we can skip
+    const commitHash = await fetchLatestCommitHash(owner, repo, branch, githubToken);
 
-    // 3. AST chunk each file (Tree-sitter)
-    // Placeholder: use @chorus/tree-sitter-utils
+    // 2. Fetch repo files and metadata
+    console.log(`[Worker] Fetching repository: ${repoUrl}`);
+    const fetchResult = await fetchRepository(repoUrl, githubToken);
 
-    // 4. Generate embeddings (Gemini / Xenova fallback)
-    // Placeholder: call embedding API
+    // 3. Filter valid files
+    console.log(`[Worker] Filtering files...`);
+    const filterResult = filterFiles(fetchResult.files);
 
-    // 5. Upsert chunks into MongoDB Atlas
-    // Placeholder: bulk upsert to chunks collection
+    // 4. Chunk files
+    console.log(`[Worker] Chunking ${filterResult.accepted.length} files...`);
+    const repoIdentifier = `${owner}/${repo}`;
+    const chunks = chunkFiles(repoIdentifier, filterResult.accepted);
 
-    // 6. Trigger graph extraction
-    // Placeholder: extract and save dependency graph
+    // 5. Generate embeddings
+    console.log(`[Worker] Embedding ${chunks.length} chunks...`);
+    const embeddingResult = await embedChunks(chunks);
 
-    // 7. Emit completion event via WebSocket
-    // Placeholder: emit indexing:complete event
+    // 6. Write to pgvector store
+    console.log(`[Worker] Writing chunks to vector store...`);
+    await writeToVectorStore(embeddingResult.embedded, {
+      repoMeta: fetchResult.meta,
+      commitHash: commitHash ?? undefined,
+      embeddingModel: embeddingResult.model
+    });
 
-    console.log(`Successfully indexed repo ${repoId}`);
-  } finally {
-    if (repoPath) await cleanupRepo(repoPath);
+    console.log(`[Worker] Successfully indexed repo ${repoId}`);
+  } catch (err) {
+    console.error(`[Worker] Failed to index repo ${repoId}:`, err);
+    throw err;
   }
 }

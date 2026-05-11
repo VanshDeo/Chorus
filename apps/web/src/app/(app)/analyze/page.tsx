@@ -138,16 +138,18 @@ export default function AnalyzePage() {
         }
 
         const saved = readSavedAnalysis(routeRepoSlug);
-        if (saved) {
+        if (saved && saved.analyzed && saved.analysisData) {
             setUrl(saved.url || routeRepoUrl);
             setAnalysisData(saved.analysisData ?? null);
-            setAnalyzed(Boolean(saved.analyzed && saved.analysisData));
+            setAnalyzed(true);
             setArchData(saved.archData ?? null);
         } else {
             setAnalyzed(false);
             setAnalysisData(null);
             setArchData(null);
+            handleAnalyze(routeRepoUrl);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeRepoSlug, routeRepoUrl]);
 
     // Persist state per repository so opening one repo never overwrites another.
@@ -160,18 +162,19 @@ export default function AnalyzePage() {
         }
     }, [routeRepoSlug, url, analysisData, analyzed, archData]);
 
-    const handleAnalyze = async () => {
-        if (!url) return;
+    const handleAnalyze = async (overrideUrl?: string) => {
+        const targetUrl = overrideUrl || url;
+        if (!targetUrl) return;
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/repo/analyze`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url, githubUsername: user?.username, userId: user?.id }),
+                body: JSON.stringify({ url: targetUrl, githubUsername: user?.username, userId: user?.id }),
             });
             const data = await res.json();
             const repoSlug = getRepoSlug(data.repo?.owner, data.repo?.name);
-            const canonicalUrl = data.repo?.repoUrl ?? url;
+            const canonicalUrl = data.repo?.repoUrl ?? targetUrl;
 
             setAnalysisData(data);
             setAnalyzed(true);
@@ -280,12 +283,13 @@ export default function AnalyzePage() {
                                 type="text"
                                 value={url}
                                 onChange={(e) => { setUrl(e.target.value); setAnalyzed(false); setAnalysisData(null); setArchData(null); }}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
                                 placeholder="https://github.com/owner/repo"
                                 className="w-full bg-[#121212] border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500/40"
                             />
                         </div>
                         <Button
-                            onClick={handleAnalyze}
+                            onClick={() => handleAnalyze()}
                             disabled={loading}
                             className="bg-orange-600 hover:bg-orange-500 text-white border-0 px-6"
                         >
@@ -320,7 +324,7 @@ export default function AnalyzePage() {
                         >
                             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                             <span className="text-xs text-slate-500">
-                                Showing cached results for <span className="text-slate-400 font-mono">{analysisData.repo?.owner}/{analysisData.repo?.name}</span> — <button onClick={handleAnalyze} className="text-orange-400 hover:text-orange-300 underline underline-offset-2">Re-analyze</button>
+                                Showing cached results for <span className="text-slate-400 font-mono">{analysisData.repo?.owner}/{analysisData.repo?.name}</span> — <button onClick={() => handleAnalyze()} className="text-orange-400 hover:text-orange-300 underline underline-offset-2">Re-analyze</button>
                             </span>
                         </motion.div>
                     )}
